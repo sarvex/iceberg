@@ -60,7 +60,11 @@ class Schema:
         self._id_to_accessor: dict[int, Accessor] = {}  # Should be accessed through self._lazy_id_to_accessor()
 
     def __str__(self):
-        return "table {\n" + "\n".join(["  " + str(field) for field in self.columns]) + "\n}"
+        return (
+            "table {\n"
+            + "\n".join([f"  {str(field)}" for field in self.columns])
+            + "\n}"
+        )
 
     def __repr__(self):
         return (
@@ -78,7 +82,9 @@ class Schema:
             return False
 
         identifier_field_ids_is_equal = self.identifier_field_ids == other.identifier_field_ids
-        schema_is_equal = all([lhs == rhs for lhs, rhs in zip(self.columns, other.columns)])
+        schema_is_equal = all(
+            lhs == rhs for lhs, rhs in zip(self.columns, other.columns)
+        )
 
         return identifier_field_ids_is_equal and schema_is_equal
 
@@ -147,8 +153,7 @@ class Schema:
             NestedField: The matched NestedField
         """
         if isinstance(name_or_id, int):
-            field = self._lazy_id_to_field().get(name_or_id)
-            return field  # type: ignore
+            return self._lazy_id_to_field().get(name_or_id)
         if case_sensitive:
             field_id = self._name_to_id.get(name_or_id)
         else:
@@ -316,7 +321,7 @@ def visit(obj, visitor: SchemaVisitor[T]) -> T:
     Raises:
         NotImplementedError: If attempting to visit an unrecognized object type
     """
-    raise NotImplementedError("Cannot visit non-type: %s" % obj)
+    raise NotImplementedError(f"Cannot visit non-type: {obj}")
 
 
 @visit.register(Schema)
@@ -504,8 +509,7 @@ class _IndexByName(SchemaVisitor[Dict[str, int]]):
 
     def by_id(self) -> dict[int, str]:
         """Returns an index of ID to full names"""
-        id_to_full_name = {value: key for key, value in self._index.items()}
-        return id_to_full_name
+        return {value: key for key, value in self._index.items()}
 
 
 def index_by_name(schema_or_type: Schema | IcebergType) -> dict[str, int]:

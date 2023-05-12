@@ -29,16 +29,16 @@ class PartitionData(StructLike):
         else:
             for field in partition_type.fields:
                 if not field.type.is_primitive_type():
-                    raise RuntimeError("Partitions cannot contain nested types: %s" % field.type)
+                    raise RuntimeError(f"Partitions cannot contain nested types: {field.type}")
             self.partition_type = partition_type
-            # schema = PartitionData.get_schema(self.partition_type)
+                # schema = PartitionData.get_schema(self.partition_type)
         self._size = len(self.partition_type.fields)
-        self.data = list()
+        self.data = []
         self.schema = schema
         self.string_schema = str(schema)
 
     def clear(self):
-        self.data = list()
+        self.data = []
 
     def copy(self):
         return copy.deepcopy(self)
@@ -65,8 +65,12 @@ class PartitionData(StructLike):
         return not self.__eq__(other)
 
     def __str__(self):
-        return "PartitionData{%s}" % (",".join(["{}={}".format(self.partition_type.fields[i],
-                                                               datum) for i, datum in enumerate(self.data)]))
+        return "PartitionData{%s}" % ",".join(
+            [
+                f"{self.partition_type.fields[i]}={datum}"
+                for i, datum in enumerate(self.data)
+            ]
+        )
 
     def __len__(self):
         return self._size

@@ -65,7 +65,7 @@ class Evaluator(object):
             return ref.get(self.struct) is None
 
         def not_null(self, ref):
-            return not (ref.get(self.struct) is None)
+            return ref.get(self.struct) is not None
 
         def lt(self, ref, lit):
             return ref.get(self.struct) < lit.value

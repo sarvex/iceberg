@@ -30,8 +30,10 @@ def base_scan_schema():
 
 @pytest.fixture(scope="session", params=["none", "one"])
 def base_scan_partition(base_scan_schema, request):
-    if request.param == "none":
-        spec = PartitionSpec.unpartitioned()
-    else:
-        spec = PartitionSpecBuilder(base_scan_schema).add(1, 1000, "id", "identity").build()
-    return spec
+    return (
+        PartitionSpec.unpartitioned()
+        if request.param == "none"
+        else PartitionSpecBuilder(base_scan_schema)
+        .add(1, 1000, "id", "identity")
+        .build()
+    )

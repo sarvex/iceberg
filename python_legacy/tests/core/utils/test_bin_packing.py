@@ -33,4 +33,4 @@ def test_bin_packing(splits, lookback, split_size, open_cost):
 
     item_list_sums = [sum(item)
                       for item in PackingIterator(splits, split_size, lookback, weight_func)]
-    assert all([split_size >= item_sum >= 0 for item_sum in item_list_sums])
+    assert all(split_size >= item_sum >= 0 for item_sum in item_list_sums)

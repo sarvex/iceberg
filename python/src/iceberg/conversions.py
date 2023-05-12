@@ -243,7 +243,9 @@ def from_bytes(primitive_type: PrimitiveType, b: bytes) -> Union[bool, bytes, De
         primitive_type(PrimitiveType): An implementation of the PrimitiveType base class
         b(bytes): The bytes to convert
     """
-    raise TypeError(f"Cannot deserialize bytes, type {primitive_type} not supported: {str(b)}")
+    raise TypeError(
+        f"Cannot deserialize bytes, type {primitive_type} not supported: {b}"
+    )
 
 
 @from_bytes.register(BooleanType)

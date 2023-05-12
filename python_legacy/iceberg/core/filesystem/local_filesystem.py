@@ -65,7 +65,7 @@ class LocalFileSystem(FileSystem):
 
     def create(self: "LocalFileSystem", path: str, overwrite: bool = False) -> object:
         if os.path.exists(path) and not overwrite:
-            raise RuntimeError("Path %s already exists" % path)
+            raise RuntimeError(f"Path {path} already exists")
 
         return open(path, "w")
 

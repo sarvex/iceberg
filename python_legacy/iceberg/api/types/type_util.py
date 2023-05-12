@@ -27,20 +27,20 @@ from .types import (ListType,
                     StructType)
 from ...exceptions import ValidationException
 
-MAX_PRECISION = list()
-REQUIRED_LENGTH = [-1 for item in range(40)]
+REQUIRED_LENGTH = [-1 for _ in range(40)]
 
-MAX_PRECISION.append(0)
-for i in range(1, 24):
-    MAX_PRECISION.append(int(math.floor(math.log10(math.pow(2, 8 * i - 1) - 1))))
-
+MAX_PRECISION = [0]
+MAX_PRECISION.extend(
+    int(math.floor(math.log10(math.pow(2, 8 * i - 1) - 1)))
+    for i in range(1, 24)
+)
 for i in range(len(REQUIRED_LENGTH)):
     for j in range(len(MAX_PRECISION)):
         if i <= MAX_PRECISION[j]:
             REQUIRED_LENGTH[i] = j
             break
     if REQUIRED_LENGTH[i] < 0:
-        raise RuntimeError("Could not find required length for precision %s" % i)
+        raise RuntimeError(f"Could not find required length for precision {i}")
 
 
 def select(schema, field_ids):
@@ -59,7 +59,7 @@ def select(schema, field_ids):
         else:
             return iceberg.api.schema.Schema(result.as_nested_type().fields)
 
-    return iceberg.api.schema.Schema(list(), schema.get_aliases())
+    return iceberg.api.schema.Schema([], schema.get_aliases())
 
 
 def get_projected_ids(schema):
@@ -73,7 +73,7 @@ def get_projected_ids(schema):
         return set(visit(schema, GetProjectedIds))
 
     else:
-        raise RuntimeError("Argument %s must be Schema or a Type" % schema)
+        raise RuntimeError(f"Argument {schema} must be Schema or a Type")
 
 
 def select_not(schema, field_ids):
@@ -124,7 +124,7 @@ def visit(arg, visitor): # noqa: ignore=C901
         type_var = arg
         if type_var.type_id == TypeID.STRUCT:
             struct = type_var.as_nested_type().as_struct_type()
-            results = list()
+            results = []
             for field in struct.fields:
                 visitor.field_ids.append(field.field_id)
                 visitor.field_names.append(field.name)
@@ -178,7 +178,7 @@ def visit(arg, visitor): # noqa: ignore=C901
         else:
             return visitor.primitive(arg.as_primitive_type())
     else:
-        raise RuntimeError("Invalid type for arg: %s" % arg)
+        raise RuntimeError(f"Invalid type for arg: {arg}")
 
 
 def visit_custom_order(arg, visitor):
@@ -190,10 +190,8 @@ def visit_custom_order(arg, visitor):
         type_var = arg
         if type_var.type_id == TypeID.STRUCT:
             struct = type_var.as_nested_type().as_struct_type()
-            results = list()
             fields = struct.fields
-            for field in fields:
-                results.append(VisitFieldFuture(field, visitor))
+            results = [VisitFieldFuture(field, visitor) for field in fields]
             struct = visitor.struct(struct, [x.get() for x in results])
             return struct
         elif type_var.type_id == TypeID.LIST:
@@ -208,8 +206,8 @@ def visit_custom_order(arg, visitor):
 class SchemaVisitor(object):
 
     def __init__(self):
-        self.field_names = list()
-        self.field_ids = list()
+        self.field_names = []
+        self.field_ids = []
 
     def schema(self, schema, struct_result):
         return None
@@ -275,7 +273,7 @@ class VisitFieldFuture(object):
 
 def decimal_required_bytes(precision):
     if precision < 0 or precision > 40:
-        raise RuntimeError("Unsupported decimal precision: %s" % precision)
+        raise RuntimeError(f"Unsupported decimal precision: {precision}")
 
     return REQUIRED_LENGTH[precision]
 
@@ -284,7 +282,7 @@ class GetProjectedIds(SchemaVisitor):
 
     def __init__(self):
         super(GetProjectedIds, self).__init__()
-        self.field_ids = list()
+        self.field_ids = []
 
     def schema(self, schema, struct_result):
         return self.field_ids
@@ -324,7 +322,7 @@ class PruneColumns(SchemaVisitor):
 
     def struct(self, struct, field_results):
         fields = struct.fields
-        selected_fields = list()
+        selected_fields = []
         same_types = True
 
         for i, projected_type in enumerate(field_results):
@@ -332,7 +330,7 @@ class PruneColumns(SchemaVisitor):
             if projected_type is not None:
                 if field.type == projected_type:
                     selected_fields.append(field)
-                elif projected_type is not None:
+                else:
                     same_types = False
                     if field.is_optional:
                         selected_fields.append(NestedField.optional(field.field_id,
@@ -343,7 +341,7 @@ class PruneColumns(SchemaVisitor):
                                                                     field.name,
                                                                     projected_type))
 
-        if len(selected_fields) != 0:
+        if selected_fields:
             if len(selected_fields) == len(fields) and same_types:
                 return struct
             else:
@@ -365,7 +363,7 @@ class IndexByName(SchemaVisitor):
 
     def __init__(self):
         super(IndexByName, self).__init__()
-        self.name_to_id = dict()
+        self.name_to_id = {}
 
     def schema(self, schema, struct_result):
         return self.name_to_id
@@ -400,7 +398,7 @@ class IndexById(SchemaVisitor):
 
     def __init__(self):
         super(IndexById, self).__init__()
-        self.index = dict()
+        self.index = {}
 
     def schema(self, schema, struct_result):
         return self.index
@@ -439,12 +437,8 @@ class AssignFreshIds(CustomOrderSchemaVisitor):
     def struct(self, struct, field_results):
         fields = struct.fields
         length = len(struct.fields)
-        new_ids = list()
-
-        for _ in range(length):
-            new_ids.append(self.next_id())
-
-        new_fields = list()
+        new_ids = [self.next_id() for _ in range(length)]
+        new_fields = []
         types = iter(field_results)
         for i in range(length):
             field = fields[i]
@@ -508,7 +502,7 @@ class CheckCompatibility(CustomOrderSchemaVisitor):
             raise RuntimeError("Evaluation must start with a schema.")
 
         if not self.current_type.is_struct_type():
-            return [": %s cannot be read as a struct" % self.current_type]
+            return [f": {self.current_type} cannot be read as a struct"]
 
         errors = []
 
@@ -517,10 +511,7 @@ class CheckCompatibility(CustomOrderSchemaVisitor):
 
         if self.check_ordering:
             new_struct = self.current_type.as_struct_type()
-            id_to_ord = {}
-            for i, val in enumerate(new_struct.fields):
-                id_to_ord[val.field_id] = i
-
+            id_to_ord = {val.field_id: i for i, val in enumerate(new_struct.fields)}
             last_ordinal = -1
 
             for read_field in self.struct.fields:
@@ -530,8 +521,9 @@ class CheckCompatibility(CustomOrderSchemaVisitor):
                 if field is not None:
                     ordinal = id_to_ord[id]
                     if last_ordinal >= ordinal:
-                        errors.append("%s is out of order before %s" % (read_field.name,
-                                                                        new_struct.fields[last_ordinal].name))
+                        errors.append(
+                            f"{read_field.name} is out of order before {new_struct.fields[last_ordinal].name}"
+                        )
                     last_ordinal = ordinal
 
         return errors
@@ -543,20 +535,20 @@ class CheckCompatibility(CustomOrderSchemaVisitor):
 
         if curr_field is None:
             if not field.is_optional:
-                errors.append("{} is required, but is missing".format(field.name))
+                errors.append(f"{field.name} is required, but is missing")
             return self.NO_ERRORS
 
         self.current_type = curr_field.type
 
         try:
             if not field.is_optional and curr_field.is_optional:
-                errors.append(field.name + " should be required, but is optional")
+                errors.append(f"{field.name} should be required, but is optional")
 
             for error in field_result:
                 if error.startswith(":"):
-                    errors.append("{}{}".format(field.field_name, error))
+                    errors.append(f"{field.field_name}{error}")
                 else:
-                    errors.append("{}.{}".format(field.field_name, error))
+                    errors.append(f"{field.field_name}.{error}")
 
             return errors
         except RuntimeError:

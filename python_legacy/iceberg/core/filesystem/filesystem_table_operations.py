@@ -40,10 +40,7 @@ class FilesystemTableOperations(TableOperations):
         self.current_metadata = None
 
     def current(self):
-        if self.should_refresh:
-            return self.refresh()
-
-        return self.current_metadata
+        return self.refresh() if self.should_refresh else self.current_metadata
 
     def refresh(self):
         ver = self.version if self.version is not None else self.read_version_hint()
@@ -53,7 +50,7 @@ class FilesystemTableOperations(TableOperations):
         if ver is not None and not fs.exists(metadata_file):
             if ver == 0:
                 return None
-            raise ValidationException("Metadata file is missing: %s" % metadata_file)
+            raise ValidationException(f"Metadata file is missing: {metadata_file}")
 
         while fs.exists(str(self.metadata_file(ver + 1))):
             ver += 1
@@ -69,13 +66,14 @@ class FilesystemTableOperations(TableOperations):
         if base != self.current():
             raise CommitFailedException("Cannot commit changes based on stale table metadata")
 
-        if not (base is None or base.location() == metadata.location()):
+        if base is not None and base.location() != metadata.location():
             raise RuntimeError("Hadoop path-based tables cannot be relocated")
         if TableProperties.WRITE_METADATA_LOCATION in metadata.properties:
             raise RuntimeError("Hadoop path-based tables cannot be relocated")
 
-        temp_metadata_file = self.metadata_path("{}{}".format(uuid.uuid4(),
-                                                              TableMetadataParser.get_file_extension(self.conf)))
+        temp_metadata_file = self.metadata_path(
+            f"{uuid.uuid4()}{TableMetadataParser.get_file_extension(self.conf)}"
+        )
         TableMetadataParser.write(metadata, FileSystemOutputFile.from_path(str(temp_metadata_file), self.conf))
 
         next_version = (self.version if self.version is not None else 0) + 1
@@ -83,10 +81,14 @@ class FilesystemTableOperations(TableOperations):
         fs = get_fs(str(final_metadata_file), self.conf)
 
         if fs.exists(final_metadata_file):
-            raise CommitFailedException("Version %s already exists: %s" % (next_version, final_metadata_file))
+            raise CommitFailedException(
+                f"Version {next_version} already exists: {final_metadata_file}"
+            )
 
         if not fs.rename(temp_metadata_file, final_metadata_file):
-            raise CommitFailedException("Failed to commit changes using rename: %s" % final_metadata_file)
+            raise CommitFailedException(
+                f"Failed to commit changes using rename: {final_metadata_file}"
+            )
 
         self.write_version_hint(next_version)
         self.should_refresh = True
@@ -110,7 +112,9 @@ class FilesystemTableOperations(TableOperations):
         return str(self.metadata_path(file))
 
     def metadata_file(self, version):
-        return self.metadata_path("v{}{}".format(version, TableMetadataParser.get_file_extension(self.conf)))
+        return self.metadata_path(
+            f"v{version}{TableMetadataParser.get_file_extension(self.conf)}"
+        )
 
     def metadata_path(self, filename):
         return self.location / Path("metadata") / Path(filename)
@@ -124,9 +128,8 @@ class FilesystemTableOperations(TableOperations):
 
         if not fs.exists(version_hint_file):
             return 0
-        else:
-            with fs.open(version_hint_file, "r") as fo:
-                return int(fo.readline().replace("\n", ""))
+        with fs.open(version_hint_file, "r") as fo:
+            return int(fo.readline().replace("\n", ""))
 
     def write_version_hint(self, version):
         version_hint_file = str(self.version_hint_file())
@@ -134,7 +137,7 @@ class FilesystemTableOperations(TableOperations):
         try:
 
             with fs.create(version_hint_file, True) as fo:
-                fo.write("{}".format(version))
+                fo.write(f"{version}")
 
         except RuntimeError as e:
-            _logger.warning("Unable to update version hint: %s" % e)
+            _logger.warning(f"Unable to update version hint: {e}")

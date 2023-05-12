@@ -29,6 +29,6 @@ class Tables(object):
     @staticmethod
     def default_args(spec=None, properties=None):
         spec = spec if spec is not None else PartitionSpec.unpartitioned()
-        properties = properties if properties is not None else dict()
+        properties = properties if properties is not None else {}
 
         return spec, properties

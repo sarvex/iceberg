@@ -26,7 +26,7 @@ class PackingIterator(object):
         self.target_weight = target_weight
         self.lookback = lookback
         self.weight_func = weight_func
-        self.bins = list()
+        self.bins = []
 
     def __iter__(self):
         return self
@@ -69,7 +69,7 @@ class Bin(object):
     def __init__(self, target_weight):
         self.bin_weight = 0
         self.target_weight = target_weight
-        self.items = list()
+        self.items = []
 
     def can_add(self, weight):
         return self.bin_weight + weight <= self.target_weight

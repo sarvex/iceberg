@@ -35,7 +35,7 @@ class Expression(object):
         raise RuntimeError("No implementation for base class")
 
     def negate(self):
-        raise RuntimeError("%s cannot be negated" % self)
+        raise RuntimeError(f"{self} cannot be negated")
 
 
 class Operation(Enum):
@@ -83,7 +83,7 @@ class Operation(Enum):
         elif self == Operation.NOT_IN:
             return Operation.IN
         else:
-            raise RuntimeError("No negation for operation: %s" % self)
+            raise RuntimeError(f"No negation for operation: {self}")
 
     def flipLR(self):
         if self == Operation.LT:
@@ -103,7 +103,7 @@ class Operation(Enum):
         elif self == Operation.OR:
             return Operation.OR
         else:
-            raise RuntimeError("No left-right flip for operation: %s" % self)
+            raise RuntimeError(f"No left-right flip for operation: {self}")
 
     def op(self):
         pass
@@ -134,10 +134,10 @@ class And(Expression):
         return Expressions.or_(self.left.negate(), self.right.negate()) # noqa
 
     def __repr__(self):
-        return "And({},{})".format(self.left, self.right)
+        return f"And({self.left},{self.right})"
 
     def __str__(self):
-        return '({} and {})'.format(self.left, self.right)
+        return f'({self.left} and {self.right})'
 
 
 class FalseExp(Expression):
@@ -155,10 +155,7 @@ class FalseExp(Expression):
         return self.__repr__()
 
     def __eq__(self, other):
-        if isinstance(other, FalseExp):
-            return True
-
-        return False
+        return isinstance(other, FalseExp)
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -189,10 +186,10 @@ class Or(Expression):
         return Expressions.and_(self.left.negate(), self.right.negate()) # noqa
 
     def __repr__(self):
-        return "Or({},{})".format(self.left, self.right)
+        return f"Or({self.left},{self.right})"
 
     def __str__(self):
-        return '({} or {})'.format(self.left, self.right)
+        return f'({self.left} or {self.right})'
 
 
 class Not(Expression):
@@ -218,10 +215,10 @@ class Not(Expression):
         return self.child
 
     def __repr__(self):
-        return "Not({})".format(self.child)
+        return f"Not({self.child})"
 
     def __str__(self):
-        return 'not({})'.format(self.child)
+        return f'not({self.child})'
 
 
 class TrueExp(Expression):
@@ -239,10 +236,7 @@ class TrueExp(Expression):
         return self.__repr__()
 
     def __eq__(self, other):
-        if isinstance(other, TrueExp):
-            return True
-
-        return False
+        return isinstance(other, TrueExp)
 
     def __ne__(self, other):
         return not self.__eq__(other)

@@ -55,13 +55,13 @@ class HiveTableOperations(BaseMetastoreTableOperations):
         table_type = tbl_info.parameters.get(BaseMetastoreTableOperations.TABLE_TYPE_PROP)
 
         if not table_type or table_type.lower() != BaseMetastoreTableOperations.ICEBERG_TABLE_TYPE_VALUE:
-            raise RuntimeError("Invalid table, not Iceberg: %s.%s" % (self.database,
-                                                                      self.table))
+            raise RuntimeError(f"Invalid table, not Iceberg: {self.database}.{self.table}")
 
         metadata_location = tbl_info.parameters.get(BaseMetastoreTableOperations.METADATA_LOCATION_PROP)
         if not metadata_location:
-            raise RuntimeError("Invalid table, missing metadata_location: %s.%s" % (self.database,
-                                                                                    self.table))
+            raise RuntimeError(
+                f"Invalid table, missing metadata_location: {self.database}.{self.table}"
+            )
 
         self.refresh_from_metadata_location(metadata_location)
 
@@ -110,14 +110,18 @@ class HiveTableOperations(BaseMetastoreTableOperations):
                     open_client.create_table(tbl)
             threw = False
         except AlreadyExistsException:
-            raise IcebergAlreadyExistsException("Table already exists: {}.{}".format(self.database, self.table))
+            raise IcebergAlreadyExistsException(
+                f"Table already exists: {self.database}.{self.table}"
+            )
         except TException as e:
             if e and "Table/View 'HIVE_LOCKS' does not exist" in str(e):
                 raise Exception("""Failed to acquire locks from metastore because 'HIVE_LOCKS' doesn't
                                 exist, this probably happened when using embedded metastore or doesn't create a
                                 transactional meta table. To fix this, use an alternative metastore""", e)
 
-            raise Exception("Metastore operation failed for {}.{}".format(self.database, self.table), e)
+            raise Exception(
+                f"Metastore operation failed for {self.database}.{self.table}", e
+            )
         finally:
             if threw:
                 self.io().delete(new_metadata_location)
@@ -127,10 +131,10 @@ class HiveTableOperations(BaseMetastoreTableOperations):
         parameters = tbl.parameters
 
         if not parameters:
-            parameters = dict()
+            parameters = {}
 
         parameters[BaseMetastoreTableOperations.TABLE_TYPE_PROP] = \
-            BaseMetastoreTableOperations.ICEBERG_TABLE_TYPE_VALUE.upper()
+                BaseMetastoreTableOperations.ICEBERG_TABLE_TYPE_VALUE.upper()
         parameters[BaseMetastoreTableOperations.METADATA_LOCATION_PROP] = new_metadata_location
 
         if self.current_metadata_location and len(self.current_metadata_location) > 0:
@@ -144,7 +148,7 @@ class HiveTableOperations(BaseMetastoreTableOperations):
                 with self._client as open_client:
                     open_client.unlock(LockResponse(lock_id))
             except Exception as e:
-                logging.warning("Failed to unlock {}.{}".format(self.database, self.table), e)
+                logging.warning(f"Failed to unlock {self.database}.{self.table}", e)
 
     def acquire_lock(self: "HiveTableOperations") -> int:
         lock_component = LockComponent(LockType.EXCLUSIVE, LockLevel.TABLE, self.database, self.table)
@@ -170,14 +174,14 @@ class HiveTableOperations(BaseMetastoreTableOperations):
                 time.sleep(0.05)
 
         if timed_out and state != LockState.ACQUIRED:
-            raise CommitFailedException("Timed out after {} ms waiting for lock on {}.{}".format(duration,
-                                                                                                 self.database,
-                                                                                                 self.table))
+            raise CommitFailedException(
+                f"Timed out after {duration} ms waiting for lock on {self.database}.{self.table}"
+            )
 
         if state != LockState.ACQUIRED:
             raise CommitFailedException(
-                "Could not acquire the lock on {}.{}, lock request ended in state {}".format(self.database, self.table,
-                                                                                             state))
+                f"Could not acquire the lock on {self.database}.{self.table}, lock request ended in state {state}"
+            )
         return lock_id
 
     def io(self: "HiveTableOperations") -> FileSystem:
@@ -202,7 +206,6 @@ def columns(schema: Schema) -> List[FieldSchema]:
 
 def convert_hive_type(col_type: Type) -> str:
     type_id = col_type.type_id
-    hive_type_id = hive_types.get(type_id)  # type: ignore
-    if hive_type_id:
+    if hive_type_id := hive_types.get(type_id):
         return hive_type_id
-    raise NotImplementedError("Not yet implemented column type " + str(col_type))
+    raise NotImplementedError(f"Not yet implemented column type {str(col_type)}")

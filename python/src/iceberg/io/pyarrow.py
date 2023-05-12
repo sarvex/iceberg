@@ -111,9 +111,7 @@ class PyArrowFile(InputFile, OutputFile):
         """
         try:
             input_file = self._filesystem.open_input_file(self._path)
-        except FileNotFoundError:
-            raise
-        except PermissionError:
+        except (FileNotFoundError, PermissionError):
             raise
         except OSError as e:
             if e.errno == 2 or "Path does not exist" in str(e):
@@ -204,9 +202,7 @@ class PyArrowFileIO(FileIO):
         filesystem, path = FileSystem.from_uri(str_path)  # Infer the proper filesystem
         try:
             filesystem.delete_file(path)
-        except FileNotFoundError:
-            raise
-        except PermissionError:
+        except (FileNotFoundError, PermissionError):
             raise
         except OSError as e:
             if e.errno == 2 or "Path does not exist" in str(e):

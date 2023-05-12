@@ -44,12 +44,22 @@ class TableMetadata(object):
                              str(field.transform))
 
         fresh_spec = spec_builder.build()
-        properties = properties if properties is not None else dict()
+        properties = properties if properties is not None else {}
 
-        return TableMetadata(ops, None, location,
-                             int(time.time() * 1000),
-                             last_column_id.get(), fresh_schema, TableMetadata.INITIAL_SPEC_ID, [fresh_spec],
-                             properties, -1, list(), list())
+        return TableMetadata(
+            ops,
+            None,
+            location,
+            int(time.time() * 1000),
+            last_column_id.get(),
+            fresh_schema,
+            TableMetadata.INITIAL_SPEC_ID,
+            [fresh_spec],
+            properties,
+            -1,
+            [],
+            [],
+        )
 
     def __init__(self, ops, file, location, last_updated_millis,
                  last_column_id, schema, default_spec_id, specs, properties,
@@ -73,12 +83,17 @@ class TableMetadata(object):
 
         last = None
         for log_entry in snapshot_log:
-            if last is not None:
-                if not (log_entry.timestamp_millis - last.timestamp_millis > 0):
-                    raise RuntimeError("[BUG] Expected sorted snapshot log entries.")
+            if (
+                last is not None
+                and log_entry.timestamp_millis - last.timestamp_millis <= 0
+            ):
+                raise RuntimeError("[BUG] Expected sorted snapshot log entries.")
             last = log_entry
 
-        if not (len(self.snapshot_by_id) == 0 or self.current_snapshot_id in self.snapshot_by_id):
+        if (
+            self.snapshot_by_id
+            and self.current_snapshot_id not in self.snapshot_by_id
+        ):
             raise RuntimeError("Invalid table metadata: Cannot find current version")
 
     @property
@@ -142,14 +157,14 @@ class TableMetadata(object):
                              self.current_snapshot_id, self.snapshots, self.snapshot_log)
 
     def remove_snapshots_if(self, remove_if):
-        filtered = list()
-
-        for snapshot in self.snapshots:
-            if snapshot.snapshot_id == self.current_snapshot_id or not remove_if(snapshot):
-                filtered.append(snapshot)
-
+        filtered = [
+            snapshot
+            for snapshot in self.snapshots
+            if snapshot.snapshot_id == self.current_snapshot_id
+            or not remove_if(snapshot)
+        ]
         valid_ids = [snapshot.snapshot_id for snapshot in filtered]
-        new_snapshot_log = list()
+        new_snapshot_log = []
         for log_entry in self.snapshot_log:
             if log_entry.snapshot_id in valid_ids:
                 new_snapshot_log.append(log_entry)
@@ -179,12 +194,11 @@ class TableMetadata(object):
                              self.current_snapshot_id, self.snapshots, self.snapshot_log)
 
     def remove_snapshot_log_entries(self, snapshot_ids):
-        new_snapshot_log = list()
-
-        for entry in self.snapshot_log:
-            if entry.snapshot_id not in snapshot_ids:
-                new_snapshot_log.append(entry)
-
+        new_snapshot_log = [
+            entry
+            for entry in self.snapshot_log
+            if entry.snapshot_id not in snapshot_ids
+        ]
         check_snapshot = self.current_snapshot_id < 0 or new_snapshot_log[-1].snapshot_id == self.current_snapshot_id
         ValidationException.check(check_snapshot,
                                   "Cannot set invalid snapshot log: latest entry is not the current snapshot")

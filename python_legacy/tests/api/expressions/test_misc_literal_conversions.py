@@ -51,8 +51,13 @@ def test_identity_conversions():
              ]
 
     if sys.version_info[0] >= 3:
-        pairs = pairs + [(Literal.of(bytes([0x01, 0x02, 0x03])), FixedType.of_length(3)),
-                         (Literal.of(bytearray([0x03, 0x04, 0x05, 0x06])), BinaryType.get())]
+        pairs += [
+            (Literal.of(bytes([0x01, 0x02, 0x03])), FixedType.of_length(3)),
+            (
+                Literal.of(bytearray([0x03, 0x04, 0x05, 0x06])),
+                BinaryType.get(),
+            ),
+        ]
 
     for pair in pairs:
         expected = pair[0].to(pair[1])

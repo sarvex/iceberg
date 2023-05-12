@@ -67,10 +67,7 @@ class BaseProjectionEvaluator(ProjectionEvaluator):
     def predicate(self, pred):
         bound = pred.bind(self.spec.schema.as_struct(), case_sensitive=self.case_sensitive)
 
-        if isinstance(bound, BoundPredicate):
-            return self.predicate(bound)
-
-        return bound
+        return self.predicate(bound) if isinstance(bound, BoundPredicate) else bound
 
 
 class InclusiveProjection(BaseProjectionEvaluator):
@@ -89,10 +86,7 @@ class InclusiveProjection(BaseProjectionEvaluator):
             return self.always_true()
 
         result = part.transform.project(part.name, pred)
-        if result is not None:
-            return result
-
-        return self.always_true()
+        return result if result is not None else self.always_true()
 
 
 class StrictProjection(BaseProjectionEvaluator):
@@ -108,7 +102,4 @@ class StrictProjection(BaseProjectionEvaluator):
 
         result = part.transform.project_strict(part.name, pred)
 
-        if result is not None:
-            return result
-
-        return self.always_false()
+        return result if result is not None else self.always_false()

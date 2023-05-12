@@ -108,7 +108,7 @@ class NamedReference:
         return not self.__eq__(other)
 
     def __repr__(self):
-        return "NamedReference({})".format(self.name)
+        return f"NamedReference({self.name})"
 
     def __str__(self):
-        return 'ref(name="{}")'.format(self.name)
+        return f'ref(name="{self.name}")'

@@ -26,7 +26,7 @@ _logger = logging.getLogger(__name__)
 @contextmanager
 def profile(label, stats_dict=None):
     if stats_dict is None:
-        _logger.debug('PROFILE: %s starting' % label)
+        _logger.debug(f'PROFILE: {label} starting')
     start = time.time()
     yield
     took = int((time.time() - start) * 1000)

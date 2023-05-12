@@ -244,10 +244,7 @@ class TimestampType(PrimitiveType):
         return not self.__eq__(other)
 
     def __repr__(self):
-        if self.adjust_to_utc:
-            return "timestamptz"
-        else:
-            return "timestamp"
+        return "timestamptz" if self.adjust_to_utc else "timestamp"
 
     def __str__(self):
         return self.__repr__()
@@ -338,7 +335,7 @@ class FixedType(PrimitiveType):
         return not self.__eq__(other)
 
     def __repr__(self):
-        return "fixed[%s]" % (self.length)
+        return f"fixed[{self.length}]"
 
     def __str__(self):
         return self.__repr__()
@@ -386,7 +383,7 @@ class DecimalType(PrimitiveType):
         return TypeID.DECIMAL
 
     def __repr__(self):
-        return "decimal(%s, %s)" % (self.precision, self.scale)
+        return f"decimal({self.precision}, {self.scale})"
 
     def __str__(self):
         return self.__repr__()
@@ -436,11 +433,7 @@ class NestedField():
         return self.id
 
     def __repr__(self):
-        return "%s: %s: %s %s(%s)" % (self.id,
-                                      self.name,
-                                      "optional" if self.is_optional else "required",
-                                      self.type,
-                                      self.doc)
+        return f'{self.id}: {self.name}: {"optional" if self.is_optional else "required"} {self.type}({self.doc})'
 
     def __str__(self):
         return self.__repr__()
@@ -478,10 +471,8 @@ class StructType(NestedType):
         if fields is None:
             raise RuntimeError("Field list cannot be None")
 
-        self._fields = list()
-        for i in range(0, len(fields)):
-            self._fields.append(fields[i])
-
+        self._fields = []
+        self._fields.extend(fields[i] for i in range(0, len(fields)))
         self._fieldList = None
         self._fieldsByName = None
         self._fieldsByLowercaseName = None
@@ -524,7 +515,7 @@ class StructType(NestedType):
         return self
 
     def __str__(self):
-        return "struct<{}>".format(StructType.FIELD_SEP.join(str(x) for x in self.fields))
+        return f"struct<{StructType.FIELD_SEP.join(str(x) for x in self.fields)}>"
 
     def __hash__(self):
         return hash(self.__key())
@@ -553,9 +544,9 @@ class StructType(NestedType):
         return self._fieldsById
 
     def index_fields(self):
-        self._fieldsByName = dict()
-        self._fieldsByLowercaseName = dict()
-        self._fieldsById = dict()
+        self._fieldsByName = {}
+        self._fieldsByLowercaseName = {}
+        self._fieldsById = {}
 
         for field in self.fields:
             self._fieldsByName[field.name] = field
@@ -589,7 +580,7 @@ class ListType(NestedType):
         return self.element_field.type
 
     def field_type(self, name):
-        if "element" == name:
+        if name == "element":
             return self.element_type
 
     def field(self, id):
@@ -616,7 +607,7 @@ class ListType(NestedType):
         return self
 
     def __str__(self):
-        return "list<%s>" % self.element_field.type
+        return f"list<{self.element_field.type}>"
 
     def __eq__(self, other):
         if id(self) == id(other):
@@ -676,9 +667,9 @@ class MapType(NestedType):
         return self.value_field.type
 
     def field_type(self, name):
-        if "key" == name:
+        if name == "key":
             return self.key_field.type
-        elif "value" == name:
+        elif name == "value":
             return self.value_field.type
 
     def field(self, id):
@@ -709,7 +700,7 @@ class MapType(NestedType):
         return not self.is_value_optional()
 
     def __str__(self):
-        return "map<%s, %s>" % (self.key_field.type, self.value_field.type)
+        return f"map<{self.key_field.type}, {self.value_field.type}>"
 
     def __eq__(self, other):
         if id(self) == id(other):

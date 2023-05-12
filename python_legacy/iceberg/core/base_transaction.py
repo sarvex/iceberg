@@ -42,7 +42,7 @@ class BaseTransaction(Transaction):
 
     def __init__(self, ops, start):
         self.ops = ops
-        self.updates = list()
+        self.updates = []
         self.intermediate_snapshot_ids = set()
         self.base = ops.current
         if self.base is None and start is None:
@@ -63,7 +63,9 @@ class BaseTransaction(Transaction):
     # NOTE: function name has typo in the word `comitted`. Kept for backwards compatability in legacy python API.
     def check_last_operation_commited(self, operation):
         if self.last_base == self.current:
-            raise RuntimeError("Cannot create new %s: last operation has not committed" % operation)
+            raise RuntimeError(
+                f"Cannot create new {operation}: last operation has not committed"
+            )
         self.last_base = self.current
 
     def update_schema(self):

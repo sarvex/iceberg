@@ -30,8 +30,8 @@ class BaseCombinedScanTask(CombinedScanTask):
         return self.tasks
 
     def __repr__(self):
-        return "BaseCombinedScanTask([{}])".format(self.tasks)
+        return f"BaseCombinedScanTask([{self.tasks}])"
 
     def __str__(self):
-        total_size = sum([task.length for task in self.tasks])
-        return "BaseCombinedScanTask(num_tasks={}, total_size={})".format(len(self.tasks), total_size)
+        total_size = sum(task.length for task in self.tasks)
+        return f"BaseCombinedScanTask(num_tasks={len(self.tasks)}, total_size={total_size})"

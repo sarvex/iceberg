@@ -22,7 +22,7 @@ class ScanTask(object):
         return False
 
     def as_file_scan_task(self):
-        raise RuntimeError("Not a FileScanTask: %s" % self)
+        raise RuntimeError(f"Not a FileScanTask: {self}")
 
     def as_combined_scan_task(self):
-        RuntimeError("Not a CombinedScanTask: %s" % self)
+        RuntimeError(f"Not a CombinedScanTask: {self}")

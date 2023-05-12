@@ -85,15 +85,13 @@ class Schema(object):
 
     def find_type(self, name):
         if isinstance(name, int):
-            field = self.lazy_id_to_field().get(name)
-            if field:
+            if field := self.lazy_id_to_field().get(name):
                 return field.type
         elif isinstance(name, str):
-            id = self.lazy_name_to_id().get(name)
-            if id:
+            if id := self.lazy_name_to_id().get(name):
                 return self.find_type(id)
         else:
-            raise RuntimeError("Invalid Column (could not find): %s" % name)
+            raise RuntimeError(f"Invalid Column (could not find): {name}")
 
     def find_field(self, id):
         if isinstance(id, int):
@@ -111,10 +109,7 @@ class Schema(object):
             raise ValueError("Invalid Column Name (empty)")
 
         id = self.lazy_lowercase_name_to_id().get(name.lower())
-        if id is not None:
-            return self.lazy_id_to_field().get(id)
-
-        return None
+        return self.lazy_id_to_field().get(id) if id is not None else None
 
     def find_column_name(self, id):
         if isinstance(id, int):
@@ -158,7 +153,9 @@ class Schema(object):
         return len(self.struct.fields)
 
     def __repr__(self):
-        return "Schema(%s)" % ",".join([str(field) for field in self.struct.fields])
+        return f'Schema({",".join([str(field) for field in self.struct.fields])})'
 
     def __str__(self):
-        return "table {\n%s\n}" % Schema.NEWLINE.join([" " + str(field) for field in self.struct.fields])
+        return "table {\n%s\n}" % Schema.NEWLINE.join(
+            [f" {str(field)}" for field in self.struct.fields]
+        )

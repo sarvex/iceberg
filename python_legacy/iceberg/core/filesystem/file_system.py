@@ -75,14 +75,13 @@ class FileSystemInputFile(InputFile):
         with self.fs.open(self.location()) as fo:
             if gzipped:
                 fo = gzip.GzipFile(fileobj=fo)
-            for line in fo:
-                yield line
+            yield from fo
 
     def new_fo(self, mode="rb"):
         return self.fs.open(self.location(), mode=mode)
 
     def __repr__(self):
-        return "FileSystemInputFile({})".format(self.path)
+        return f"FileSystemInputFile({self.path})"
 
     def __str__(self):
         return self.__repr__()
@@ -101,7 +100,7 @@ class FileSystemOutputFile(OutputFile):
     def create(self, mode="w"):
         fs = get_fs(self.path, self.conf)
         if fs.exists(self.path):
-            raise RuntimeError("File %s already exists" % self.path)
+            raise RuntimeError(f"File {self.path} already exists")
 
         return fs.open(self.path, mode=mode)
 
@@ -114,7 +113,7 @@ class FileSystemOutputFile(OutputFile):
         return str(self.path)
 
     def __repr__(self):
-        return "FileSystemOutputFile({})".format(self.path)
+        return f"FileSystemOutputFile({self.path})"
 
     def __str__(self):
         return self.__repr__()

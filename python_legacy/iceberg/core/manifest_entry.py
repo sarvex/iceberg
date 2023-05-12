@@ -39,19 +39,20 @@ class ManifestEntry():
         self.file = None
         self.status = Status.EXISTING
 
-        if self.schema is None and partition_type is not None:
-            self.schema = IcebergToAvro.type_to_schema(ManifestEntry.get_schema(partition_type))
+        if self.schema is None:
+            if partition_type is not None:
+                self.schema = IcebergToAvro.type_to_schema(ManifestEntry.get_schema(partition_type))
 
-        elif self.schema is None and partition_type is None and to_copy is not None:
-            self.schema = to_copy.schema
-            self.status = to_copy.status
-            self.snapshot_id = to_copy.snapshot_id
-            self.file = to_copy.file.copy()
+            elif to_copy is not None:
+                self.status = to_copy.status
+                self.snapshot_id = to_copy.snapshot_id
+                self.schema = to_copy.schema
+                self.file = to_copy.file.copy()
 
         if self.schema is None:
-            raise RuntimeError("Invalid arguments schema=%s, partition_type=%s, to_copy=%s" % (self.schema,
-                                                                                               partition_type,
-                                                                                               to_copy))
+            raise RuntimeError(
+                f"Invalid arguments schema={self.schema}, partition_type={partition_type}, to_copy={to_copy}"
+            )
 
     def wrap_existing(self, snapshot_id, file):
         self.status = Status.EXISTING
@@ -112,7 +113,7 @@ class ManifestEntry():
             return self.file
 
     def __repr__(self):
-        return "ManifestEntry(status=%s, snapshot_id=%s, file=%s" % (self.status, self.snapshot_id, self.file)
+        return f"ManifestEntry(status={self.status}, snapshot_id={self.snapshot_id}, file={self.file}"
 
     def __str__(self):
         return self.__repr__()

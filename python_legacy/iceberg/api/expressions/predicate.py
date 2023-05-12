@@ -62,27 +62,27 @@ class Predicate(Expression):
         return not self.__eq__(other)
 
     def __repr__(self):
-        return "Predicate({},{},{})".format(self.op, self.ref, self.lit)
+        return f"Predicate({self.op},{self.ref},{self.lit})"
 
     def __str__(self):
         if self.op == Operation.IS_NULL:
-            return "is_null({})".format(self.ref)
+            return f"is_null({self.ref})"
         elif self.op == Operation.NOT_NULL:
-            return "not_null({})".format(self.ref)
+            return f"not_null({self.ref})"
         elif self.op == Operation.LT:
-            return "less_than({})".format(self.ref)
+            return f"less_than({self.ref})"
         elif self.op == Operation.LT_EQ:
-            return "less_than_equal({})".format(self.ref)
+            return f"less_than_equal({self.ref})"
         elif self.op == Operation.GT:
-            return "greater_than({})".format(self.ref)
+            return f"greater_than({self.ref})"
         elif self.op == Operation.GT_EQ:
-            return "greater_than_equal({})".format(self.ref)
+            return f"greater_than_equal({self.ref})"
         elif self.op == Operation.EQ:
-            return "equal({})".format(self.ref)
+            return f"equal({self.ref})"
         elif self.op == Operation.NOT_EQ:
-            return "not_equal({})".format(self.ref)
+            return f"not_equal({self.ref})"
         else:
-            return "invalid predicate: operation = {}".format(self.op)
+            return f"invalid predicate: operation = {self.op}"
 
 
 class BoundPredicate(Predicate):
@@ -186,7 +186,7 @@ class UnboundPredicate(Predicate):
 
     def __init__(self, op, term, value=None, lit=None, values=None, literals=None):
         self._literals = None
-        num_set_args = sum([1 for x in [value, lit, values, literals] if x is not None])
+        num_set_args = sum(1 for x in [value, lit, values, literals] if x is not None)
 
         if num_set_args > 1:
             raise ValueError(f"Only one of value={value}, lit={lit}, values={values}, literals={literals} may be set")
@@ -254,8 +254,10 @@ class UnboundPredicate(Predicate):
                                       (bound_term.type, lit, lit.__class__.__name__))
             return converted
 
-        converted_literals = filter(lambda x: x != Literals.above_max() and x != Literals.below_min(),
-                                    [convert_literal(lit) for lit in self.literals])
+        converted_literals = filter(
+            lambda x: x not in [Literals.above_max(), Literals.below_min()],
+            [convert_literal(lit) for lit in self.literals],
+        )
         if len(converted_literals) == 0:
             return Expressions.always_true() if Operation.NOT_IN else Expressions.always_false()
         literal_set = set(converted_literals)

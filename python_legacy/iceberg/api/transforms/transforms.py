@@ -78,7 +78,7 @@ class Transforms(object):
         elif type_var.type_id == TypeID.TIMESTAMP:
             return Timestamps("year", "year")
         else:
-            raise RuntimeError("Cannot partition type %s by year" % type_var)
+            raise RuntimeError(f"Cannot partition type {type_var} by year")
 
     @staticmethod
     def month(type_var):
@@ -87,7 +87,7 @@ class Transforms(object):
         elif type_var.type_id == TypeID.TIMESTAMP:
             return Timestamps("month", "month")
         else:
-            raise RuntimeError("Cannot partition type %s by month" % type_var)
+            raise RuntimeError(f"Cannot partition type {type_var} by month")
 
     @staticmethod
     def day(type_var):
@@ -96,7 +96,7 @@ class Transforms(object):
         elif type_var.type_id == TypeID.TIMESTAMP:
             return Timestamps("day", "day")
         else:
-            raise RuntimeError("Cannot partition type %s by day" % type_var)
+            raise RuntimeError(f"Cannot partition type {type_var} by day")
 
     @staticmethod
     def hour(type_var):
@@ -105,7 +105,7 @@ class Transforms(object):
         elif type_var.type_id == TypeID.TIMESTAMP:
             return Timestamps("hour", "hour")
         else:
-            raise RuntimeError("Cannot partition type %s by hour" % type_var)
+            raise RuntimeError(f"Cannot partition type {type_var} by hour")
 
     @staticmethod
     def bucket(type_var, num_buckets):

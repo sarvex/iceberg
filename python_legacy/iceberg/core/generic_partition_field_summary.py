@@ -39,8 +39,7 @@ class GenericPartitionFieldSummary(PartitionFieldSummary, StructLike):
         self._upper_bound = upper_bound
 
     def __str__(self):
-        return ("GenericPartitionFieldSummary(contains_null={},lower_bound={}, upper_bound={})"
-                .format(self.contains_null(), self.lower_bound(), self.upper_bound()))
+        return f"GenericPartitionFieldSummary(contains_null={self.contains_null()},lower_bound={self.lower_bound()}, upper_bound={self.upper_bound()})"
 
     def contains_null(self):
         return self._contains_null

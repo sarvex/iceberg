@@ -47,7 +47,7 @@ class DataTableScan(BaseTableScan):
                                             snapshot_id=snapshot_id, row_filter=row_filter,
                                             case_sensitive=case_sensitive, selected_columns=selected_columns,
                                             options=options, minused_cols=minused_cols)
-        self._cached_evaluators = dict()
+        self._cached_evaluators = {}
 
     def new_refined_scan(self, ops, table, schema, snapshot_id=None, row_filter=None, case_sensitive=None,
                          selected_columns=None, options=None, minused_cols=None):
@@ -62,15 +62,18 @@ class DataTableScan(BaseTableScan):
         matching_manifests = [manifest for manifest in snapshot.manifests
                               if self.cache_loader(manifest.spec_id).eval(manifest)]
 
-        if self.ops.conf.get(SCAN_THREAD_POOL_ENABLED):
-            with Pool(self.ops.conf.get(WORKER_THREAD_POOL_SIZE_PROP,
-                                        cpu_count())) as reader_scan_pool:
-                return itertools.chain.from_iterable([scan for scan
-                                                      in reader_scan_pool.map(self.get_scans_for_manifest,
-                                                                              matching_manifests)])
-        else:
+        if not self.ops.conf.get(SCAN_THREAD_POOL_ENABLED):
             return itertools.chain.from_iterable([self.get_scans_for_manifest(manifest)
                                                   for manifest in matching_manifests])
+        with Pool(self.ops.conf.get(WORKER_THREAD_POOL_SIZE_PROP,
+                                            cpu_count())) as reader_scan_pool:
+            return itertools.chain.from_iterable(
+                list(
+                    reader_scan_pool.map(
+                        self.get_scans_for_manifest, matching_manifests
+                    )
+                )
+            )
 
     def cache_loader(self, spec_id):
         spec = self.ops.current().spec_id(spec_id)
@@ -93,6 +96,8 @@ class DataTableScan(BaseTableScan):
             try:
                 return int(scan_split_size_str)
             except ValueError:
-                _logger.warning("Invalid %s option: %s" % (TableProperties.SPLIT_SIZE, scan_split_size_str))
+                _logger.warning(
+                    f"Invalid {TableProperties.SPLIT_SIZE} option: {scan_split_size_str}"
+                )
 
         return int(self.ops.current().properties.get(TableProperties.SPLIT_SIZE, TableProperties.SPLIT_SIZE_DEFAULT))

@@ -202,10 +202,9 @@ class LongLiteral(Literal[int]):
         unscaled = Decimal(self.value)
         if type_var.scale == 0:
             return DecimalLiteral(unscaled)
-        else:
-            sign, digits, _ = unscaled.as_tuple()
-            zeros = (0,) * type_var.scale
-            return DecimalLiteral(Decimal((sign, digits + zeros, -type_var.scale)))
+        sign, digits, _ = unscaled.as_tuple()
+        zeros = (0,) * type_var.scale
+        return DecimalLiteral(Decimal((sign, digits + zeros, -type_var.scale)))
 
 
 class FloatLiteral(Literal[float]):
@@ -323,9 +322,7 @@ class DecimalLiteral(Literal[Decimal]):
 
     @to.register(DecimalType)
     def _(self, type_var: DecimalType) -> Optional[Literal[Decimal]]:
-        if type_var.scale == abs(self.value.as_tuple().exponent):
-            return self
-        return None
+        return self if type_var.scale == abs(self.value.as_tuple().exponent) else None
 
 
 class StringLiteral(Literal[str]):
@@ -404,10 +401,7 @@ class FixedLiteral(Literal[bytes]):
 
     @to.register(FixedType)
     def _(self, type_var: FixedType) -> Optional[Literal[bytes]]:
-        if len(self.value) == type_var.length:
-            return self
-        else:
-            return None
+        return self if len(self.value) == type_var.length else None
 
     @to.register(BinaryType)
     def _(self, type_var: BinaryType) -> Literal[bytes]:
@@ -428,7 +422,4 @@ class BinaryLiteral(Literal[bytes]):
 
     @to.register(FixedType)
     def _(self, type_var: FixedType) -> Optional[Literal[bytes]]:
-        if type_var.length == len(self.value):
-            return FixedLiteral(self.value)
-        else:
-            return None
+        return FixedLiteral(self.value) if type_var.length == len(self.value) else None

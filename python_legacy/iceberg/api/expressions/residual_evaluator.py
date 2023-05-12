@@ -89,7 +89,7 @@ class ResidualVisitor(ExpressionVisitors.BoundExpressionVisitor):
         elif isinstance(pred, UnboundPredicate):
             return self.unbound_predicate(pred)
 
-        raise RuntimeError("Invalid predicate argument %s" % pred)
+        raise RuntimeError(f"Invalid predicate argument {pred}")
 
     def bound_predicate(self, pred):
         part = self.spec.get_field_by_source_id(pred.ref.field_id)
@@ -110,8 +110,5 @@ class ResidualVisitor(ExpressionVisitors.BoundExpressionVisitor):
 
         if isinstance(bound, BoundPredicate):
             bound_residual = self.predicate(bound)
-            if isinstance(bound_residual, Predicate):
-                return pred
-            return bound_residual
-
+            return pred if isinstance(bound_residual, Predicate) else bound_residual
         return bound

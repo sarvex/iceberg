@@ -53,16 +53,19 @@ class FilteredManifest(object):
                                 self.columns, self.case_sensitive)
 
     def all_entries(self):
-        if self.row_filter is not None and self.row_filter != Expressions.always_true() \
-                or self.part_filter is not None and self. part_filter != Expressions.always_true():
-            evaluator = self.evaluator()
-            metrics_evaluator = self.metrics_evaluator()
-            return [entry for entry in self.reader.entries(self.columns)
-                    if entry is not None
-                    and evaluator.eval(entry.file.partition())
-                    and metrics_evaluator.eval(entry.file)]
-        else:
+        if (
+            self.row_filter is None or self.row_filter == Expressions.always_true()
+        ) and (
+            self.part_filter is None
+            or self.part_filter == Expressions.always_true()
+        ):
             return self.reader.entries(self.columns)
+        evaluator = self.evaluator()
+        metrics_evaluator = self.metrics_evaluator()
+        return [entry for entry in self.reader.entries(self.columns)
+                if entry is not None
+                and evaluator.eval(entry.file.partition())
+                and metrics_evaluator.eval(entry.file)]
 
     def live_entries(self):
         if self.row_filter is not None and self.row_filter != Expressions.always_true() \
@@ -80,17 +83,20 @@ class FilteredManifest(object):
                     if entry is not None and entry.status != Status.DELETED]
 
     def iterator(self):
-        if self.row_filter is not None and self.row_filter != Expressions.always_true() \
-                or self.part_filter is not None and self.part_filter != Expressions.always_true():
-            evaluator = self.evaluator()
-            metrics_evaluator = self.metrics_evaluator()
-
-            return (input.copy() for input in self.reader.iterator(self.part_filter, self.columns)
-                    if input is not None
-                    and evaluator.eval(input.partition())
-                    and metrics_evaluator.eval(input))
-        else:
+        if (
+            self.row_filter is None or self.row_filter == Expressions.always_true()
+        ) and (
+            self.part_filter is None
+            or self.part_filter == Expressions.always_true()
+        ):
             return (entry.copy() for entry in self.reader.iterator(self.part_filter, self.columns))
+        evaluator = self.evaluator()
+        metrics_evaluator = self.metrics_evaluator()
+
+        return (input.copy() for input in self.reader.iterator(self.part_filter, self.columns)
+                if input is not None
+                and evaluator.eval(input.partition())
+                and metrics_evaluator.eval(input))
 
     def evaluator(self):
         if self.lazy_evaluator is None:

@@ -55,16 +55,18 @@ class BaseFileScanTask(FileScanTask):
 
     def split(self, split_size):
         if self.file.format().is_splittable():
-            return [task for task in SplitScanTaskIterator(split_size, self)]
+            return list(SplitScanTaskIterator(split_size, self))
         else:
             return self
 
     def __repr__(self):
-        fields = ["file: {}".format(self._file.path()),
-                  "partition_data: {}".format(self._file.partition()),
-                  "residual: {}".format(self.residual)]
+        fields = [
+            f"file: {self._file.path()}",
+            f"partition_data: {self._file.partition()}",
+            f"residual: {self.residual}",
+        ]
 
-        return "BaseFileScanTask({})".format(", ".join(fields))
+        return f'BaseFileScanTask({", ".join(fields)})'
 
     def __str__(self):
         return self.__repr__()

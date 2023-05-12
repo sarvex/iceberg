@@ -84,13 +84,12 @@ def get_field(col: pa.Field) -> NestedField:
 
 
 def get_struct_field(col_type: pa.StructType) -> StructType:
-    if col_type.num_fields > 0:
-        if col_type[0].name == "map":
-            return get_inferred_map(col_type)
-        else:
-            return StructType.of([get_field(child) for child in col_type])
+    if col_type.num_fields <= 0:
+        raise RuntimeError(f"Unable to convert type to iceberg {col_type}")
+    if col_type[0].name == "map":
+        return get_inferred_map(col_type)
     else:
-        raise RuntimeError("Unable to convert type to iceberg %s" % col_type)
+        return StructType.of([get_field(child) for child in col_type])
 
 
 def get_inferred_map(col_type: pa.StructType):

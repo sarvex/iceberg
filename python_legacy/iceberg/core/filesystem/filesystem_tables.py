@@ -25,13 +25,15 @@ from ...exceptions import NoSuchTableException
 class FilesystemTables(Tables):
 
     def __init__(self: "FilesystemTables", conf: dict = None) -> None:
-        self.conf = conf if conf is not None else dict()
+        self.conf = conf if conf is not None else {}
 
     def load(self: "FilesystemTables", table_identifier: str) -> Table:
         from ..base_table import BaseTable
         ops = self.new_table_ops(table_identifier)
         if ops.current() is None:
-            raise NoSuchTableException("Table does not exist at location: %s" % table_identifier)
+            raise NoSuchTableException(
+                f"Table does not exist at location: {table_identifier}"
+            )
 
         return BaseTable(ops, table_identifier)
 

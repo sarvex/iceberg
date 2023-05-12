@@ -22,7 +22,7 @@ class AtomicInteger(object):
 
     def __init__(self, value):
         if not isinstance(value, int):
-            raise RuntimeError("Value %s is not an int" % value)
+            raise RuntimeError(f"Value {value} is not an int")
         self.value = value
         self._lock = RLock()
 

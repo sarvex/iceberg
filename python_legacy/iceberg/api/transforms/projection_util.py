@@ -36,31 +36,31 @@ class ProjectionUtil(object):
         elif pred.op == Operation.EQ:
             return Expressions.predicate(pred.op, name, transform.apply(boundary))
 
-    def truncate_long(name, pred, transform):
-        return ProjectionUtil.truncate_integer(name, pred, transform)
+    def truncate_long(self, pred, transform):
+        return ProjectionUtil.truncate_integer(self, pred, transform)
 
-    def truncate_decimal(name, pred, transform):
+    def truncate_decimal(self, pred, transform):
         boundary = pred.lit.value
 
         if pred.op == Operation.LT:
             minus_one = boundary - decimal.Decimal(1)
-            return Expressions.predicate(Operation.LT_EQ, name, transform.apply(minus_one))
+            return Expressions.predicate(Operation.LT_EQ, self, transform.apply(minus_one))
         elif pred.op == Operation.LT_EQ:
-            return Expressions.predicate(Operation.LT_EQ, name, transform.apply(boundary))
+            return Expressions.predicate(Operation.LT_EQ, self, transform.apply(boundary))
         elif pred.op == Operation.GT:
             plus_one = boundary + decimal.Decimal(1)
-            return Expressions.predicate(Operation.GT_EQ, name, transform.apply(plus_one))
+            return Expressions.predicate(Operation.GT_EQ, self, transform.apply(plus_one))
         elif pred.op == Operation.GT_EQ:
-            return Expressions.predicate(Operation.GT_EQ, name, transform.apply(boundary))
+            return Expressions.predicate(Operation.GT_EQ, self, transform.apply(boundary))
         elif pred.op == Operation.EQ:
-            return Expressions.predicate(pred.op, name, transform.apply(boundary))
+            return Expressions.predicate(pred.op, self, transform.apply(boundary))
 
-    def truncate_array(name, pred, transform):
+    def truncate_array(self, pred, transform):
         boundary = pred.lit.value
 
-        if pred.op == Operation.LT or pred.op == Operation.LT_EQ:
-            return Expressions.predicate(Operation.LT_EQ, name, transform.apply(boundary))
-        elif pred.op == Operation.GT or pred.op == Operation.GT_EQ:
-            return Expressions.predicate(Operation.GT_EQ, name, transform.apply(boundary))
+        if pred.op in [Operation.LT, Operation.LT_EQ]:
+            return Expressions.predicate(Operation.LT_EQ, self, transform.apply(boundary))
+        elif pred.op in [Operation.GT, Operation.GT_EQ]:
+            return Expressions.predicate(Operation.GT_EQ, self, transform.apply(boundary))
         elif pred.op == Operation.EQ:
-            return Expressions.predicate(pred.op, name, transform.apply(boundary))
+            return Expressions.predicate(pred.op, self, transform.apply(boundary))

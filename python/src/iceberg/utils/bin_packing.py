@@ -23,7 +23,7 @@ class PackingIterator:
         self.lookback = lookback
         self.weight_func = weight_func
         self.largest_bin_first = largest_bin_first
-        self.bins = list()
+        self.bins = []
 
     def __iter__(self):
         return self
@@ -52,24 +52,20 @@ class PackingIterator:
         return list(self.remove_bin().items)
 
     def find_bin(self, weight):
-        for bin_ in self.bins:
-            if bin_.can_add(weight):
-                return bin_
-        return None
+        return next((bin_ for bin_ in self.bins if bin_.can_add(weight)), None)
 
     def remove_bin(self):
-        if self.largest_bin_first:
-            bin_ = max(self.bins, key=lambda b: b.weight())
-            self.bins.remove(bin_)
-            return bin_
-        else:
+        if not self.largest_bin_first:
             return self.bins.pop(0)
+        bin_ = max(self.bins, key=lambda b: b.weight())
+        self.bins.remove(bin_)
+        return bin_
 
     class Bin:
         def __init__(self, target_weight: int):
             self.bin_weight = 0
             self.target_weight = target_weight
-            self.items: list = list()
+            self.items: list = []
 
         def weight(self) -> int:
             return self.bin_weight

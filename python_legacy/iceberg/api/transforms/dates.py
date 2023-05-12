@@ -40,16 +40,15 @@ class Dates(Transform):
 
     def __init__(self, granularity, name):
         if granularity not in (Dates.YEAR, Dates.MONTH, Dates.DAY):
-            raise RuntimeError("Invalid Granularity: %s" % granularity)
+            raise RuntimeError(f"Invalid Granularity: {granularity}")
         self.granularity = granularity
         self.name = name
 
     def apply(self, days):
         if self.granularity == Dates.DAY:
             return days
-        else:
-            apply_func = getattr(TransformUtil, "diff_{}".format(self.granularity))
-            return apply_func(datetime.datetime.utcfromtimestamp(days * Dates.SECONDS_IN_DAY), Dates.EPOCH)
+        apply_func = getattr(TransformUtil, f"diff_{self.granularity}")
+        return apply_func(datetime.datetime.utcfromtimestamp(days * Dates.SECONDS_IN_DAY), Dates.EPOCH)
 
     def can_transform(self, type):
         return type.type_id == TypeID.DATE
@@ -58,7 +57,7 @@ class Dates(Transform):
         return IntegerType.get()
 
     def project(self, name, predicate):
-        if predicate.op == Operation.NOT_NULL or predicate.op == Operation.IS_NULL:
+        if predicate.op in [Operation.NOT_NULL, Operation.IS_NULL]:
             return Expressions.predicate(predicate.op, name)
 
         return ProjectionUtil.truncate_integer(name, predicate, self)
@@ -67,10 +66,7 @@ class Dates(Transform):
         return None
 
     def to_human_string(self, value):
-        if value is None:
-            return "null"
-
-        return Dates.HUMAN_FUNCS[self.granularity](value)
+        return "null" if value is None else Dates.HUMAN_FUNCS[self.granularity](value)
 
     def __str__(self):
         return self.name

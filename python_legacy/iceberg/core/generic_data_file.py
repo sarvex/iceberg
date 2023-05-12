@@ -109,18 +109,19 @@ class GenericDataFile(DataFile, StructLike):
         return IcebergToAvro.type_to_schema(DataFile.get_type(partition_type), DataFile.__class__.__name__)
 
     def __repr__(self):
-        fields = ["file_path: {}".format(self._file_path),
-                  "file_format: {}".format(self._format),
-                  "partition: {}".format(self._partition_data),
-                  "record_count: {}".format(self._row_count),
-                  "file_size_in_bytes: {}".format(self._file_size_in_bytes),
-                  "block_size_in_bytes: {}".format(self._block_size_in_bytes),
-                  "column_sizes: {}".format(self._column_sizes),
-                  "value_counts: {}".format(self._value_counts),
-                  "null_value_counts: {}".format(self._null_value_counts),
-                  "lower_bounds: {}".format(self._lower_bounds),
-                  "upper_bounds: {}".format(self._upper_bounds),
-                  ]
+        fields = [
+            f"file_path: {self._file_path}",
+            f"file_format: {self._format}",
+            f"partition: {self._partition_data}",
+            f"record_count: {self._row_count}",
+            f"file_size_in_bytes: {self._file_size_in_bytes}",
+            f"block_size_in_bytes: {self._block_size_in_bytes}",
+            f"column_sizes: {self._column_sizes}",
+            f"value_counts: {self._value_counts}",
+            f"null_value_counts: {self._null_value_counts}",
+            f"lower_bounds: {self._lower_bounds}",
+            f"upper_bounds: {self._upper_bounds}",
+        ]
         return "GenericDataFile({})".format("\n,".join(fields))
 
     def __str__(self):

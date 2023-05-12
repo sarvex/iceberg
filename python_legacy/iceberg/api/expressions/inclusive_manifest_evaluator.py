@@ -82,10 +82,7 @@ class ManifestEvalVisitor(ExpressionVisitors.BoundExpressionVisitor):
 
     def not_null(self, ref):
         lower_bound = self.stats[ref.pos].lower_bound()
-        if lower_bound is None:
-            return ROWS_CANNOT_MATCH
-
-        return ROWS_MIGHT_MATCH
+        return ROWS_CANNOT_MATCH if lower_bound is None else ROWS_MIGHT_MATCH
 
     def lt(self, ref, lit):
         lower_bound = self.stats[ref.pos].lower_bound()
@@ -94,10 +91,7 @@ class ManifestEvalVisitor(ExpressionVisitors.BoundExpressionVisitor):
 
         lower = Conversions.from_byte_buffer(ref.type, lower_bound)
 
-        if lower >= lit.value:
-            return ROWS_CANNOT_MATCH
-
-        return ROWS_MIGHT_MATCH
+        return ROWS_CANNOT_MATCH if lower >= lit.value else ROWS_MIGHT_MATCH
 
     def lt_eq(self, ref, lit):
         lower_bound = self.stats[ref.pos].lower_bound()
@@ -106,10 +100,7 @@ class ManifestEvalVisitor(ExpressionVisitors.BoundExpressionVisitor):
 
         lower = Conversions.from_byte_buffer(ref.type, lower_bound)
 
-        if lower > lit.value:
-            return ROWS_CANNOT_MATCH
-
-        return ROWS_MIGHT_MATCH
+        return ROWS_CANNOT_MATCH if lower > lit.value else ROWS_MIGHT_MATCH
 
     def gt(self, ref, lit):
         upper_bound = self.stats[ref.pos].upper_bound()
@@ -118,10 +109,7 @@ class ManifestEvalVisitor(ExpressionVisitors.BoundExpressionVisitor):
 
         upper = Conversions.from_byte_buffer(ref.type, upper_bound)
 
-        if upper <= lit.value:
-            return ROWS_CANNOT_MATCH
-
-        return ROWS_MIGHT_MATCH
+        return ROWS_CANNOT_MATCH if upper <= lit.value else ROWS_MIGHT_MATCH
 
     def gt_eq(self, ref, lit):
         upper_bound = self.stats[ref.pos].upper_bound()
@@ -130,10 +118,7 @@ class ManifestEvalVisitor(ExpressionVisitors.BoundExpressionVisitor):
 
         upper = Conversions.from_byte_buffer(ref.type, upper_bound)
 
-        if upper < lit.value:
-            return ROWS_CANNOT_MATCH
-
-        return ROWS_MIGHT_MATCH
+        return ROWS_CANNOT_MATCH if upper < lit.value else ROWS_MIGHT_MATCH
 
     def eq(self, ref, lit):
         field_stats = self.stats[ref.pos]
@@ -146,10 +131,7 @@ class ManifestEvalVisitor(ExpressionVisitors.BoundExpressionVisitor):
 
         upper = Conversions.from_byte_buffer(ref.type, field_stats.upper_bound())
 
-        if upper < lit.value:
-            return ROWS_CANNOT_MATCH
-
-        return ROWS_MIGHT_MATCH
+        return ROWS_CANNOT_MATCH if upper < lit.value else ROWS_MIGHT_MATCH
 
     def not_eq(self, ref, lit):
         return ROWS_MIGHT_MATCH

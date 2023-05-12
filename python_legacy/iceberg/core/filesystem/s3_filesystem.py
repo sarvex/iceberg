@@ -46,7 +46,7 @@ def get_s3(obj="resource"):
     global AUTOREFRESH_SESSION
     global ROLE_ARN
     if ROLE_ARN not in S3_CLIENT:
-        S3_CLIENT[ROLE_ARN] = dict()
+        S3_CLIENT[ROLE_ARN] = {}
 
     if ROLE_ARN == "default":
         if AUTOREFRESH_SESSION is None:
@@ -64,19 +64,22 @@ def get_s3(obj="resource"):
         S3_CLIENT[ROLE_ARN]["resource"] = AUTOREFRESH_SESSION.resource("s3")
         S3_CLIENT[ROLE_ARN]["client"] = AUTOREFRESH_SESSION.client("s3")
 
-    return S3_CLIENT.get(ROLE_ARN, dict()).get(obj)
+    return S3_CLIENT.get(ROLE_ARN, {}).get(obj)
 
 
 def refresh_sts_session_keys():
-    params = {"RoleArn": ROLE_ARN,
-              "RoleSessionName": "iceberg_python_client_{}".format(int(time.time() * 1000.00))}
+    params = {
+        "RoleArn": ROLE_ARN,
+        "RoleSessionName": f"iceberg_python_client_{int(time.time() * 1000.0)}",
+    }
 
     sts_creds = BOTO_STS_CLIENT.assume_role(**params).get("Credentials")
-    credentials = {"access_key": sts_creds.get("AccessKeyId"),
-                   "secret_key": sts_creds.get("SecretAccessKey"),
-                   "token": sts_creds.get("SessionToken"),
-                   "expiry_time": sts_creds.get("Expiration").isoformat()}
-    return credentials
+    return {
+        "access_key": sts_creds.get("AccessKeyId"),
+        "secret_key": sts_creds.get("SecretAccessKey"),
+        "token": sts_creds.get("SessionToken"),
+        "expiry_time": sts_creds.get("Expiration").isoformat(),
+    }
 
 
 def url_to_bucket_key_name_tuple(url):
@@ -190,13 +193,15 @@ class S3File(object):
             return None
         if self.buffer_remote_reads:
             stream = self._read_from_buffer(n)
+        elif n <= 0:
+            n = self.size
+            stream = self.obj.get(
+                Range=f'bytes={self.curr_pos}-{self.size - self.curr_pos}'
+            )['Body'].read()
         else:
-            if n <= 0:
-                n = self.size
-                stream = self.obj.get(Range='bytes={}-{}'.format(self.curr_pos,
-                                                                 self.size - self.curr_pos))['Body'].read()
-            else:
-                stream = self.obj.get(Range='bytes={}-{}'.format(self.curr_pos, self.curr_pos + n - 1))['Body'].read()
+            stream = self.obj.get(
+                Range=f'bytes={self.curr_pos}-{self.curr_pos + n - 1}'
+            )['Body'].read()
 
         self.curr_pos = min(self.curr_pos + n, self.size)
         return stream
@@ -205,12 +210,14 @@ class S3File(object):
         self.buffer_reads += 1
         # if the buffer is none or if the entire read is not contained
         # in our current buffer fill the buffer
-        if self.curr_buffer is None or not (self.curr_buffer_start <= self.curr_pos
-                                            and self.curr_pos + n < self.curr_buffer_end):
+        if (
+            self.curr_buffer is None
+            or self.curr_buffer_start > self.curr_pos
+            or self.curr_pos + n >= self.curr_buffer_end
+        ):
             self.curr_buffer_start = self.curr_pos
             self.curr_buffer_end = self.curr_pos + max(self.chunk_size, n)
-            byte_range = 'bytes={}-{}'.format(self.curr_buffer_start,
-                                              self.curr_buffer_end)
+            byte_range = f'bytes={self.curr_buffer_start}-{self.curr_buffer_end}'
             self.curr_buffer = io.BytesIO(self.obj.get(Range=byte_range)['Body'].read())
         else:
             self.buffer_hits += 1
@@ -224,8 +231,7 @@ class S3File(object):
     def readline(self, n=0):
         if self.curr_buffer is None:
             self.curr_buffer = io.BytesIO(self.obj.get()['Body'].read())
-        for line in self.curr_buffer:
-            yield line
+        yield from self.curr_buffer
 
     def seek(self, offset, whence=0):
         if whence == 0:
@@ -240,8 +246,8 @@ class S3File(object):
 
     def write(self, string):
         resp = self.obj.put(Body=string)
-        if not resp.get("ResponseMetadata", dict()).get("HTTPStatusCode") == 200:
-            raise RuntimeError("Unable to write to {}".format(self.path))
+        if resp.get("ResponseMetadata", {}).get("HTTPStatusCode") != 200:
+            raise RuntimeError(f"Unable to write to {self.path}")
 
     def __enter__(self):
         return self

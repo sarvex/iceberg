@@ -28,8 +28,9 @@ class AvroSchemaUtil(object):
     @staticmethod
     def convert(iceberg_schema=None, avro_schema=None, table_name=None, names=None,
                 type_var=None, name=None):
-        if iceberg_schema is not None and table_name is not None:
-            return AvroSchemaUtil.convert(iceberg_schema=iceberg_schema,
-                                          names={iceberg_schema.as_struct(): table_name})
-        elif iceberg_schema is not None and names is not None:
-            raise RuntimeError("Not yet implemented")
+        if iceberg_schema is not None:
+            if table_name is not None:
+                return AvroSchemaUtil.convert(iceberg_schema=iceberg_schema,
+                                              names={iceberg_schema.as_struct(): table_name})
+            elif names is not None:
+                raise RuntimeError("Not yet implemented")

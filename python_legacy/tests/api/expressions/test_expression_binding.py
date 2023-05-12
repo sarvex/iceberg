@@ -37,7 +37,7 @@ def test_missing_reference():
     try:
         Binder.bind(STRUCT, expr)
     except ice_ex.ValidationException as e:
-        assert "Cannot find field 't' in struct" in "{}".format(e)
+        assert "Cannot find field 't' in struct" in f"{e}"
 
 
 def test_bound_expression_fails():

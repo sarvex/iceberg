@@ -19,7 +19,7 @@
 class CloseableGroup(object):
 
     def __init__(self):
-        self.closeables = list()
+        self.closeables = []
 
     def add_closeable(self, closeable):
         self.closeables.append(closeable)

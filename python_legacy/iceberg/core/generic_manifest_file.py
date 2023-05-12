@@ -84,13 +84,12 @@ class GenericManifestFile(ManifestFile, StructLike):
         return self._deleted_files_count
 
     def lazy_length(self):
-        if self._length is None:
-            if self.file is not None:
-                self._length = self.file.get_length()
-            else:
-                return None
-        else:
+        if self._length is not None:
             return self._length
+        if self.file is not None:
+            self._length = self.file.get_length()
+        else:
+            return None
 
     def size(self):
         return len(ManifestFile.schema().columns())
@@ -101,12 +100,9 @@ class GenericManifestFile(ManifestFile, StructLike):
 
         get_func = GenericManifestFile.GET_POS_MAP.get(pos)
         if get_func is None:
-            raise RuntimeError("Unknown field ordinal: %s" % pos)
+            raise RuntimeError(f"Unknown field ordinal: {pos}")
 
-        if cast_type is not None:
-            return cast_type(get_func(self))
-
-        return get_func(self)
+        return cast_type(get_func(self)) if cast_type is not None else get_func(self)
 
     def set(self, pos, value):
         if self.from_projection_pos:
@@ -187,7 +183,7 @@ class GenericManifestFile(ManifestFile, StructLike):
         return self.__repr__()
 
     def __repr__(self):
-        return "GenericManifestFile({})".format(self.manifest_path)
+        return f"GenericManifestFile({self.manifest_path})"
 
     def __key(self):
         return (GenericManifestFile.__class__,

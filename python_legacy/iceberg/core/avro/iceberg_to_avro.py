@@ -22,11 +22,14 @@ class IcebergToAvro(object):
 
     @staticmethod
     def type_to_schema(struct_type, name):
-        struct_fields = list()
-        for field in struct_type.fields:
-            struct_fields.append({"field-id": field.id,
-                                  "name": field.name,
-                                  "type": IcebergToAvro.get_field(field)})
+        struct_fields = [
+            {
+                "field-id": field.id,
+                "name": field.name,
+                "type": IcebergToAvro.get_field(field),
+            }
+            for field in struct_type.fields
+        ]
         return {"type": "record",
                 "name": name,
                 "fields": struct_fields}
@@ -37,7 +40,7 @@ class IcebergToAvro(object):
             return IcebergToAvro.to_option(field)
 
         elif field.type.type_id == TypeID.STRUCT:
-            struct_fields = list()
+            struct_fields = []
             for struct_field in field.type.fields:
                 field_dict = {"field-id": struct_field.id,
                               "name": struct_field.name,
@@ -55,36 +58,33 @@ class IcebergToAvro(object):
             array_obj = {'element-id': field.type.element_id,
                          "items": IcebergToAvro.get_field(field.type.element_field),
                          "type": 'array'}
-            if field.is_optional:
-                return ['null', array_obj]
-            return array_obj
-
+            return ['null', array_obj] if field.is_optional else array_obj
         elif field.type.type_id == TypeID.MAP:
             key = field.type.key_field
             value = field.type.value_field
-            array_obj = {"items": {"fields": [{"field-id": key.field_id,
-                                               "name": key.name,
-                                               "type": IcebergToAvro.get_field(key)},
-                                              {"field-id": value.field_id,
-                                               "name": value.name,
-                                               "type": IcebergToAvro.get_field(value)}],
-                                   "name": "k{}_v{}".format(key.field_id, value.field_id),
-                                   "type": "record"},
-                         "logicalType": "map",
-                         "type": "array"}
-            if field.is_optional:
-                return ["null", array_obj]
-
-            return array_obj
+            array_obj = {
+                "items": {
+                    "fields": [
+                        {
+                            "field-id": key.field_id,
+                            "name": key.name,
+                            "type": IcebergToAvro.get_field(key),
+                        },
+                        {
+                            "field-id": value.field_id,
+                            "name": value.name,
+                            "type": IcebergToAvro.get_field(value),
+                        },
+                    ],
+                    "name": f"k{key.field_id}_v{value.field_id}",
+                    "type": "record",
+                },
+                "logicalType": "map",
+                "type": "array",
+            }
+            return ["null", array_obj] if field.is_optional else array_obj
 
     @staticmethod
     def to_option(field):
-        if field.type == BinaryType.get():
-            type_name = "bytes"
-        else:
-            type_name = str(field.type)
-
-        if field.is_optional:
-            return ["null", type_name]
-        else:
-            return type_name
+        type_name = "bytes" if field.type == BinaryType.get() else str(field.type)
+        return ["null", type_name] if field.is_optional else type_name

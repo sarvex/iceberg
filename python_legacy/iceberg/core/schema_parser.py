@@ -64,16 +64,15 @@ class SchemaParser(object):
     def _type_to_dict(type_var):
         if type_var.is_primitive_type():
             return SchemaParser._primitive_to_dict(type_var)
+        nested = type_var.as_nested_type()
+        if type_var.type_id == TypeID.STRUCT:
+            return SchemaParser._struct_to_dict(nested)
+        elif type_var.type_id == TypeID.LIST:
+            return SchemaParser._list_to_dict(nested)
+        elif type_var.type_id == TypeID.MAP:
+            return SchemaParser._map_to_dict(nested)
         else:
-            nested = type_var.as_nested_type()
-            if type_var.type_id == TypeID.STRUCT:
-                return SchemaParser._struct_to_dict(nested)
-            elif type_var.type_id == TypeID.LIST:
-                return SchemaParser._list_to_dict(nested)
-            elif type_var.type_id == TypeID.MAP:
-                return SchemaParser._map_to_dict(nested)
-            else:
-                raise RuntimeError("Cannot write unknown type: %s" % type)
+            raise RuntimeError(f"Cannot write unknown type: {type}")
 
     @staticmethod
     def _primitive_to_dict(type_var):
@@ -115,20 +114,19 @@ class SchemaParser(object):
     def type_from_dict(dict_obj):
         if isinstance(dict_obj, (str, bool, int, float)):
             return from_primitive_string(dict_obj)
+        type_str = dict_obj.get(SchemaParser.TYPE)
+        if type_str.upper() == "STRUCT":
+            return SchemaParser.struct_from_dict(dict_obj)
+        elif type_str.upper() == "LIST":
+            return SchemaParser.list_from_dict(dict_obj)
+        elif type_str.upper() == "MAP":
+            return SchemaParser.map_from_dict(dict_obj)
         else:
-            type_str = dict_obj.get(SchemaParser.TYPE)
-            if type_str.upper() == "STRUCT":
-                return SchemaParser.struct_from_dict(dict_obj)
-            elif type_str.upper() == "LIST":
-                return SchemaParser.list_from_dict(dict_obj)
-            elif type_str.upper() == "MAP":
-                return SchemaParser.map_from_dict(dict_obj)
-            else:
-                raise RuntimeError("Cannot parse type from dict: %s" % dict_obj)
+            raise RuntimeError(f"Cannot parse type from dict: {dict_obj}")
 
     @staticmethod
     def struct_from_dict(dict_obj):
-        struct_fields = list()
+        struct_fields = []
         fields = dict_obj.get(SchemaParser.FIELDS)
         for field in fields:
             field_id = field.get(SchemaParser.ID)
@@ -147,9 +145,7 @@ class SchemaParser(object):
     def list_from_dict(dict_obj):
         elem_id = dict_obj.get(SchemaParser.ELEMENT_ID)
         elem_type = SchemaParser.type_from_dict(dict_obj.get(SchemaParser.ELEMENT))
-        is_required = dict_obj.get(SchemaParser.REQUIRED)
-
-        if is_required:
+        if is_required := dict_obj.get(SchemaParser.REQUIRED):
             return ListType.of_required(elem_id, elem_type)
         else:
             return ListType.of_optional(elem_id, elem_type)
@@ -162,9 +158,7 @@ class SchemaParser(object):
         value_id = dict_obj.get(SchemaParser.VALUE_ID)
         value_type = SchemaParser.type_from_dict(dict_obj.get(SchemaParser.VALUE))
 
-        is_required = dict_obj.get(SchemaParser.VALUE_REQUIRED)
-
-        if is_required:
+        if is_required := dict_obj.get(SchemaParser.VALUE_REQUIRED):
             return MapType.of_required(key_id, value_id, key_type, value_type)
         else:
             return MapType.of_optional(key_id, value_id, key_type, value_type)
@@ -179,4 +173,4 @@ class SchemaParser(object):
         if type_var is not None and type_var.is_nested_type() and type_var.as_nested_type().is_struct_type():
             return Schema(type_var.as_nested_type().as_struct_type().fields)
         else:
-            raise RuntimeError("Cannot create schema, not a struct type: %s" % type_var)
+            raise RuntimeError(f"Cannot create schema, not a struct type: {type_var}")

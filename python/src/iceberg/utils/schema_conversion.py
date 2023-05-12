@@ -138,19 +138,16 @@ class AvroSchemaConversion:
             TypeError: In the case non-optional union types are encountered
         """
         avro_types: dict | list
-        if isinstance(type_union, str):
+        if isinstance(type_union, (str, dict)):
             # It is a primitive and required
-            return type_union, False
-        elif isinstance(type_union, dict):
-            # It is a context and required
             return type_union, False
         else:
             avro_types = type_union
 
-        is_optional = "null" in avro_types
-
         if len(avro_types) > 2:
             raise TypeError("Non-optional types aren't part of the Iceberg specification")
+
+        is_optional = "null" in avro_types
 
         # Filter the null value and return the type
         return list(filter(lambda t: t != "null", avro_types))[0], is_optional
@@ -173,23 +170,22 @@ class AvroSchemaConversion:
         elif isinstance(avro_type, dict):
             if "logicalType" in avro_type:
                 return self._convert_logical_type(avro_type)
+            # Resolve potential nested types
+            while "type" in avro_type and isinstance(avro_type["type"], dict):
+                avro_type = avro_type["type"]
+            type_identifier = avro_type["type"]
+            if type_identifier == "record":
+                return self._convert_record_type(avro_type)
+            elif type_identifier == "array":
+                return self._convert_array_type(avro_type)
+            elif type_identifier == "map":
+                return self._convert_map_type(avro_type)
+            elif type_identifier == "fixed":
+                return self._convert_fixed_type(avro_type)
+            elif isinstance(type_identifier, str) and type_identifier in PRIMITIVE_FIELD_TYPE_MAPPING:
+                return PRIMITIVE_FIELD_TYPE_MAPPING[type_identifier]
             else:
-                # Resolve potential nested types
-                while "type" in avro_type and isinstance(avro_type["type"], dict):
-                    avro_type = avro_type["type"]
-                type_identifier = avro_type["type"]
-                if type_identifier == "record":
-                    return self._convert_record_type(avro_type)
-                elif type_identifier == "array":
-                    return self._convert_array_type(avro_type)
-                elif type_identifier == "map":
-                    return self._convert_map_type(avro_type)
-                elif type_identifier == "fixed":
-                    return self._convert_fixed_type(avro_type)
-                elif isinstance(type_identifier, str) and type_identifier in PRIMITIVE_FIELD_TYPE_MAPPING:
-                    return PRIMITIVE_FIELD_TYPE_MAPPING[type_identifier]
-                else:
-                    raise TypeError(f"Unknown type: {avro_type}")
+                raise TypeError(f"Unknown type: {avro_type}")
         else:
             raise TypeError(f"Unknown type: {avro_type}")
 

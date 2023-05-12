@@ -55,16 +55,16 @@ class Type(object):
         return False
 
     def as_primitive_type(self):
-        raise ValueError("Not a primitive type: " + self)
+        raise ValueError(f"Not a primitive type: {self}")
 
     def as_struct_type(self):
-        raise ValueError("Not a struct type: " + self)
+        raise ValueError(f"Not a struct type: {self}")
 
     def as_list_type(self):
-        raise ValueError("Not a list type: " + self)
+        raise ValueError(f"Not a list type: {self}")
 
     def as_map_type(self):
-        raise ValueError("Not a map type: " + self)
+        raise ValueError(f"Not a map type: {self}")
 
     def is_nested_type(self):
         return False
@@ -79,7 +79,7 @@ class Type(object):
         return False
 
     def as_nested_type(self):
-        raise ValueError("Not a nested type: " + self)
+        raise ValueError(f"Not a nested type: {self}")
 
 
 class PrimitiveType(Type):

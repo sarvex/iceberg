@@ -89,11 +89,11 @@ class TableMetadataParser(object):
             json_obj = json.loads(json_obj)
 
         if not isinstance(json_obj, dict):
-            raise RuntimeError("Cannot parse metadata from non-object: %s" % json_obj)
+            raise RuntimeError(f"Cannot parse metadata from non-object: {json_obj}")
 
         format_version = json_obj.get(TableMetadataParser.FORMAT_VERSION)
         if format_version != TableMetadata.TABLE_FORMAT_VERSION:
-            raise RuntimeError("Cannot read unsupported version: %s" % format_version)
+            raise RuntimeError(f"Cannot read unsupported version: {format_version}")
 
         location = json_obj.get(TableMetadataParser.LOCATION)
         last_assigned_column = json_obj.get(TableMetadataParser.LAST_COLUMN_ID)

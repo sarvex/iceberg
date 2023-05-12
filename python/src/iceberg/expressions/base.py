@@ -341,12 +341,12 @@ class UnboundReference:
         Returns:
             BoundReference: A reference bound to the specific field in the Iceberg schema
         """
-        field = schema.find_field(name_or_id=self.name, case_sensitive=case_sensitive)
-
-        if not field:
+        if field := schema.find_field(
+            name_or_id=self.name, case_sensitive=case_sensitive
+        ):
+            return BoundReference(field=field, accessor=schema.accessor_for_field(field.field_id))
+        else:
             raise ValueError(f"Cannot find field '{self.name}' in schema: {schema}")
-
-        return BoundReference(field=field, accessor=schema.accessor_for_field(field.field_id))
 
 
 class BooleanExpressionVisitor(Generic[T], metaclass=ABCMeta):

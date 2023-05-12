@@ -84,7 +84,9 @@ class MetricsEvalVisitor(ExpressionVisitors.BoundExpressionVisitor):
         id = ref.field.field_id
 
         if self.struct.field(id=id) is None:
-            raise RuntimeError("Cannot filter by nested column: %s" % self.schema.find_field(id))
+            raise RuntimeError(
+                f"Cannot filter by nested column: {self.schema.find_field(id)}"
+            )
 
         if self.null_counts is not None and self.null_counts.get(id, -1) == 0:
             return MetricsEvalVisitor.ROWS_CANNOT_MATCH
@@ -95,10 +97,12 @@ class MetricsEvalVisitor(ExpressionVisitors.BoundExpressionVisitor):
         id = ref.field.field_id
 
         if self.struct.field(id=id) is None:
-            raise RuntimeError("Cannot filter by nested column: %s" % self.schema.find_field(id))
+            raise RuntimeError(
+                f"Cannot filter by nested column: {self.schema.find_field(id)}"
+            )
 
         if self.value_counts is not None and id in self.value_counts and id in self.null_counts \
-                and self.value_counts.get(id) - self.null_counts.get(id) == 0:
+                    and self.value_counts.get(id) - self.null_counts.get(id) == 0:
             return MetricsEvalVisitor.ROWS_CANNOT_MATCH
 
         return MetricsEvalVisitor.ROWS_MIGHT_MATCH
@@ -108,7 +112,9 @@ class MetricsEvalVisitor(ExpressionVisitors.BoundExpressionVisitor):
         field = self.struct.field(id=id)
 
         if field is None:
-            raise RuntimeError("Cannot filter by nested column: %s" % self.schema.find_field(id))
+            raise RuntimeError(
+                f"Cannot filter by nested column: {self.schema.find_field(id)}"
+            )
 
         if self.lower_bounds is not None and id in self.lower_bounds:
             lower = Conversions.from_byte_buffer(field.type, self.lower_bounds.get(id))
@@ -122,7 +128,9 @@ class MetricsEvalVisitor(ExpressionVisitors.BoundExpressionVisitor):
         field = self.struct.field(id=id)
 
         if field is None:
-            raise RuntimeError("Cannot filter by nested column: %s" % self.schema.find_field(id))
+            raise RuntimeError(
+                f"Cannot filter by nested column: {self.schema.find_field(id)}"
+            )
 
         if self.lower_bounds is not None and id in self.lower_bounds:
             lower = Conversions.from_byte_buffer(field.type, self.lower_bounds.get(id))
@@ -136,7 +144,9 @@ class MetricsEvalVisitor(ExpressionVisitors.BoundExpressionVisitor):
         field = self.struct.field(id=id)
 
         if field is None:
-            raise RuntimeError("Cannot filter by nested column: %s" % self.schema.find_field(id))
+            raise RuntimeError(
+                f"Cannot filter by nested column: {self.schema.find_field(id)}"
+            )
 
         if self.upper_bounds is not None and id in self.upper_bounds:
             upper = Conversions.from_byte_buffer(field.type, self.upper_bounds.get(id))
@@ -150,7 +160,9 @@ class MetricsEvalVisitor(ExpressionVisitors.BoundExpressionVisitor):
         field = self.struct.field(id=id)
 
         if field is None:
-            raise RuntimeError("Cannot filter by nested column: %s" % self.schema.find_field(id))
+            raise RuntimeError(
+                f"Cannot filter by nested column: {self.schema.find_field(id)}"
+            )
 
         if self.upper_bounds is not None and id in self.upper_bounds:
             upper = Conversions.from_byte_buffer(field.type, self.upper_bounds.get(id))
@@ -164,7 +176,9 @@ class MetricsEvalVisitor(ExpressionVisitors.BoundExpressionVisitor):
         field = self.struct.field(id=id)
 
         if field is None:
-            raise RuntimeError("Cannot filter by nested column: %s" % self.schema.find_field(id))
+            raise RuntimeError(
+                f"Cannot filter by nested column: {self.schema.find_field(id)}"
+            )
 
         if self.lower_bounds is not None and id in self.lower_bounds:
             lower = Conversions.from_byte_buffer(field.type, self.lower_bounds.get(id))

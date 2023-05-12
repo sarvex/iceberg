@@ -79,7 +79,7 @@ class ParquetReader(object):
 
     def __init__(self, input: InputFile, expected_schema: Schema, options, filter_expr: Expression,
                  case_sensitive: bool, start: int = None, end: int = None):
-        self._stats: typing.Dict[str, int] = dict()
+        self._stats: typing.Dict[str, int] = {}
 
         self._input = input
         self._input_fo = input.new_fo()
@@ -102,7 +102,7 @@ class ParquetReader(object):
         self.materialized_table = False
         self._table = None
 
-        _logger.debug("Reader initialized for %s" % self._input.path)
+        _logger.debug(f"Reader initialized for {self._input.path}")
 
     @property
     def stats(self) -> typing.Dict[str, int]:
@@ -139,7 +139,9 @@ class ParquetReader(object):
             for i, field in self.get_missing_fields():
                 dtype_func = DTYPE_MAP.get(field.type.type_id)
                 if dtype_func is None:
-                    raise RuntimeError("Unable to create null column for type %s" % field.type.type_id)
+                    raise RuntimeError(
+                        f"Unable to create null column for type {field.type.type_id}"
+                    )
 
                 dtype = dtype_func(field)
                 processed_tbl = (processed_tbl.add_column(i,

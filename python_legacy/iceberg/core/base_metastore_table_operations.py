@@ -76,8 +76,8 @@ class BaseMetastoreTableOperations(TableOperations):
         return new_filename
 
     def refresh_from_metadata_location(self, new_location, num_retries=20):
-        if not self.current_metadata_location == new_location:
-            _logger.info("Refreshing table metadata from new version: %s" % new_location)
+        if self.current_metadata_location != new_location:
+            _logger.info(f"Refreshing table metadata from new version: {new_location}")
             self.retryable_refresh(new_location)
 
         self.should_refresh = False
@@ -101,9 +101,9 @@ class BaseMetastoreTableOperations(TableOperations):
         metadata_location = metadata.properties.get(TableProperties.WRITE_METADATA_LOCATION)
 
         if metadata_location is not None:
-            return "{}/{}".format(metadata_location, file_name)
+            return f"{metadata_location}/{file_name}"
         else:
-            return "{}/{}/{}".format(metadata.location, BaseMetastoreTableOperations.METADATA_FOLDER_NAME, file_name)
+            return f"{metadata.location}/{BaseMetastoreTableOperations.METADATA_FOLDER_NAME}/{file_name}"
 
     def delete_file(self, path):
         from .filesystem import get_fs
@@ -127,11 +127,8 @@ class BaseMetastoreTableOperations(TableOperations):
 
     @staticmethod
     def new_metadata_location(base_location, filename):
-        return "{}/{}/{}".format(base_location, BaseMetastoreTableOperations.METADATA_FOLDER_NAME, filename)
+        return f"{base_location}/{BaseMetastoreTableOperations.METADATA_FOLDER_NAME}/{filename}"
 
     @staticmethod
     def new_table_metadata_filename(base_location, new_version):
-        return "{}/{}/{}-{}.metadata.json".format(base_location,
-                                                  BaseMetastoreTableOperations.METADATA_FOLDER_NAME,
-                                                  '%05d' % new_version,
-                                                  uuid.uuid4())
+        return f"{base_location}/{BaseMetastoreTableOperations.METADATA_FOLDER_NAME}/{'%05d' % new_version}-{uuid.uuid4()}.metadata.json"

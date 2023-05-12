@@ -47,10 +47,10 @@ class Bucket(Transform):
 
     @staticmethod
     def get(type_var, n):
-        bucket_type_func = Bucket.BUCKET_TYPE.get(type_var.type_id)
-        if not bucket_type_func:
-            raise RuntimeError("Cannot bucket by type: %s" % type_var)
-        return bucket_type_func(n)
+        if bucket_type_func := Bucket.BUCKET_TYPE.get(type_var.type_id):
+            return bucket_type_func(n)
+        else:
+            raise RuntimeError(f"Cannot bucket by type: {type_var}")
 
     def __init__(self, n):
         self.n = n
@@ -70,10 +70,10 @@ class Bucket(Transform):
         return Bucket.__class__, self.n
 
     def __repr__(self):
-        return "Bucket[%s]" % self.n
+        return f"Bucket[{self.n}]"
 
     def __str__(self):
-        return "bucket[%s]" % self.n
+        return f"bucket[{self.n}]"
 
     def apply(self, value):
         return (self.hash(value) & JAVA_MAX_INT) % self.n

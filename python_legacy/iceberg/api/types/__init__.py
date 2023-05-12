@@ -123,12 +123,10 @@ def from_primitive_string(type_string):
     if lower_type_string in TYPES.keys():
         return TYPES[lower_type_string]
 
-    matches = FIXED.match(type_string)
-    if matches:
+    if matches := FIXED.match(type_string):
         return FixedType.of_length(matches.group(1))
 
-    matches = DECIMAL.match(type_string)
-    if matches:
+    if matches := DECIMAL.match(type_string):
         return DecimalType.of(matches.group(1), matches.group(2))
 
     raise RuntimeError("Cannot parse type string to primitive: %s", type_string)

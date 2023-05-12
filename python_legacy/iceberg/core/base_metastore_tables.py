@@ -35,15 +35,15 @@ class BaseMetastoreTables(Tables):
         database, table = _parse_table_identifier(table_identifier)
         ops = self.new_table_ops(self.conf, database, table)
         if ops.current():
-            return BaseTable(ops, "{}.{}".format(database, table))
-        raise NoSuchTableException("Table does not exist: {}.{}".format(database, table))
+            return BaseTable(ops, f"{database}.{table}")
+        raise NoSuchTableException(f"Table does not exist: {database}.{table}")
 
     def create(self: "BaseMetastoreTables", schema: Schema, table_identifier: str, spec: PartitionSpec = None,
                properties: dict = None, location: str = None) -> Table:
         database, table = _parse_table_identifier(table_identifier)
         ops = self.new_table_ops(self.conf, database, table)
         if ops.current():  # not None check here to ensure MagicMocks aren't treated as None
-            raise AlreadyExistsException("Table already exists: " + table_identifier)
+            raise AlreadyExistsException(f"Table already exists: {table_identifier}")
 
         base_location = location if location else self.default_warehouse_location(self.conf, database, table)
         full_spec, properties = super(BaseMetastoreTables, self).default_args(spec, properties)
@@ -52,9 +52,11 @@ class BaseMetastoreTables(Tables):
         try:
             ops.commit(None, metadata)
         except CommitFailedException:
-            raise AlreadyExistsException("Table was created concurrently: " + table_identifier)
+            raise AlreadyExistsException(
+                f"Table was created concurrently: {table_identifier}"
+            )
 
-        return BaseTable(ops, "{}.{}".format(database, table))
+        return BaseTable(ops, f"{database}.{table}")
 
     def begin_create(self: "BaseMetastoreTables", schema: Schema, spec: PartitionSpec, database: str, table_name: str,
                      properties: dict = None):
@@ -65,8 +67,7 @@ class BaseMetastoreTables(Tables):
         raise RuntimeError("Not Yet Implemented")
 
     def default_warehouse_location(self: "BaseMetastoreTables", conf: dict, database: str, table: str) -> str:
-        warehouse_location = conf.get("hive.metastore.warehouse.dir")
-        if warehouse_location:
+        if warehouse_location := conf.get("hive.metastore.warehouse.dir"):
             return f"{warehouse_location}/{database}.db/{table}"
         raise RuntimeError("Warehouse location is not set: hive.metastore.warehouse.dir=null")
 

@@ -40,13 +40,13 @@ class Timestamps(Transform):
 
     def __init__(self, granularity, name):
         if granularity not in (Timestamps.YEAR, Timestamps.MONTH, Timestamps.DAY, Timestamps.HOUR):
-            raise RuntimeError("Invalid Granularity: %s" % granularity)
+            raise RuntimeError(f"Invalid Granularity: {granularity}")
 
         self.granularity = granularity
         self.name = name
 
     def apply(self, value):
-        apply_func = getattr(TransformUtil, "diff_{}".format(self.granularity))
+        apply_func = getattr(TransformUtil, f"diff_{self.granularity}")
         return apply_func(datetime.datetime.utcfromtimestamp(value / 1000000), Timestamps.EPOCH)
 
     def can_transform(self, type_var):
@@ -56,7 +56,7 @@ class Timestamps(Transform):
         return IntegerType.get()
 
     def project(self, name, predicate):
-        if predicate.op == Operation.NOT_NULL or predicate.op == Operation.IS_NULL:
+        if predicate.op in [Operation.NOT_NULL, Operation.IS_NULL]:
             return Expressions.predicate(predicate.op, self.name)
 
     def project_strict(self, name, predicate):

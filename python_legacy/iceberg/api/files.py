@@ -45,14 +45,13 @@ class LocalOutputFile(OutputFile):
 
     def create(self):
         if os.path.exists(self.file):
-            raise AlreadyExistsException("File already exists: %s" % self.file)
+            raise AlreadyExistsException(f"File already exists: {self.file}")
 
         return PositionOutputStream(open(self.file, "w"))
 
     def create_or_overwrite(self):
-        if os.path.exists(self.file):
-            if not os.remove(self.file.name):
-                raise RuntimeError("File deleting file: %s" % self.file)
+        if os.path.exists(self.file) and not os.remove(self.file.name):
+            raise RuntimeError(f"File deleting file: {self.file}")
 
         return self.create()
 
@@ -105,18 +104,20 @@ class SeekableFileInputStream(SeekableInputStream):
             new_b = self.stream.read(b.length)
             return len(new_b), new_b
 
-        if off is not None and read_len is None or off is None and read_len is not None:
-            raise RuntimeError("Invalid args: read_len(%s), off(%s)" % (read_len, off))
+        if off is not None and read_len is None or off is None:
+            raise RuntimeError(f"Invalid args: read_len({read_len}), off({off})")
 
         if read_len < 0 or off < 0 or (len(b) - off < read_len):
-            raise RuntimeError("Invalid args: read_len(%s), off(%s), len_b_offset(%s)" % (read_len, off, len(b) - off))
+            raise RuntimeError(
+                f"Invalid args: read_len({read_len}), off({off}), len_b_offset({len(b) - off})"
+            )
 
         new_b = bytes(self.stream.read(read_len), "utf8")
 
         if off > 0:
-            new_b = b[0:off] + new_b
+            new_b = b[:off] + new_b
         if off + read_len < len(b):
-            new_b = new_b + b[off + read_len:]
+            new_b += b[off + read_len:]
         return read_len, new_b
 
     def skip(self, n):

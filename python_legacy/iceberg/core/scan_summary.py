@@ -25,12 +25,28 @@ from iceberg.api.types import TimestampType
 from .manifest_group import ManifestGroup
 from .util import str_as_bool
 
-TIMESTAMP_RANGE_MAP = {Operation.LT: lambda min_val, max_val, val: (min_val, val - 1 if val - 1 < max_val else max_val),
-                       Operation.LT_EQ: lambda min_val, max_val, val: (min_val, val if val < max_val else max_val),
-                       Operation.GT: lambda min_val, max_val, val: (val - 1 if val - 1 > min_val else min_val, max_val),
-                       Operation.GT_EQ: lambda min_val, max_val, val: (val if val > min_val else min_val, max_val),
-                       Operation.EQ: lambda min_val, max_val, val: (val if val > min_val else min_val,
-                                                                    val if val < max_val else max_val)}
+TIMESTAMP_RANGE_MAP = {
+    Operation.LT: lambda min_val, max_val, val: (
+        min_val,
+        min(val - 1, max_val),
+    ),
+    Operation.LT_EQ: lambda min_val, max_val, val: (
+        min_val,
+        min(val, max_val),
+    ),
+    Operation.GT: lambda min_val, max_val, val: (
+        max(val - 1, min_val),
+        max_val,
+    ),
+    Operation.GT_EQ: lambda min_val, max_val, val: (
+        max(val, min_val),
+        max_val,
+    ),
+    Operation.EQ: lambda min_val, max_val, val: (
+        max(val, min_val),
+        min(val, max_val),
+    ),
+}
 
 
 class ScanSummary(object):
@@ -53,7 +69,7 @@ class ScanSummaryBuilder(object):
         self.force_use_manifests = False
         self._limit = 2**31 - 1
 
-        self.time_filters = list()
+        self.time_filters = []
 
     def add_timestamp_filter(self, filter):
         self.throw_if_limited()
@@ -107,9 +123,9 @@ class ScanSummaryBuilder(object):
 
     def build(self):
         if self.table.current_snapshot() is None:
-            return dict()
+            return {}
 
-        filters = list()
+        filters = []
         self.remove_time_filters(filters, Expressions.rewrite_not(self.scan.row_filter))
         row_filter = self.join_filters(filters)
 
@@ -142,15 +158,17 @@ class ScanSummaryBuilder(object):
         # files in the snapshot where they were added to the dataset in either an append or an
         # overwrite. if those files are later compacted with a replace or deleted, those changes are
         # ignored.
-        manifests_to_scan = list()
+        manifests_to_scan = []
         snapshot_ids = set()
 
         for snap in snapshots:
             snapshot_ids.add(snap)
-            for manifest in snap.manifests:
-                if manifest.snapshot_id is not None or manifest.snapshot_id == snap.snapshot_id:
-                    manifests_to_scan.append(manifest)
-
+            manifests_to_scan.extend(
+                manifest
+                for manifest in snap.manifests
+                if manifest.snapshot_id is not None
+                or manifest.snapshot_id == snap.snapshot_id
+            )
         return self.from_manifest_scan(manifests_to_scan, row_filter, True)
 
     def from_manifest_scan(self, manifests, row_filter, ignore_existing=False):
@@ -216,19 +234,20 @@ class ScanSummaryBuilder(object):
 
     @staticmethod
     def timestamp_range(time_filters):
-        min_timestamp = float('-inf')
         max_timestamp = float('inf')
 
+        min_timestamp = float('-inf')
         for pred in time_filters:
             value = pred.lit.val
             try:
                 min_timestamp, max_timestamp = TIMESTAMP_RANGE_MAP[pred.op](min_timestamp, max_timestamp, value)
             except KeyError:
-                raise RuntimeError("Cannot filter timestamps using predicate: %s" % pred)
+                raise RuntimeError(f"Cannot filter timestamps using predicate: {pred}")
 
         if max_timestamp < min_timestamp:
-            raise RuntimeError("No timestamps can match filters: %s" % ", ".join([str(pred)
-                                                                                  for pred in time_filters]))
+            raise RuntimeError(
+                f'No timestamps can match filters: {", ".join([str(pred) for pred in time_filters])}'
+            )
 
         return min_timestamp, max_timestamp
 
@@ -258,7 +277,7 @@ class TopN(object):
     def __init__(self, N, throw_if_limited, key_comparator):
         self.max_size = N
         self.throw_if_limited = throw_if_limited
-        self.map = dict()
+        self.map = {}
         self.key_comparator = key_comparator
         self.cut = None
 
@@ -270,7 +289,7 @@ class TopN(object):
 
         while len(map.keys()) > self.max_size:
             if self.throw_if_limited:
-                raise RuntimeError("Too many matching keys: more than %s" % self.max_size)
+                raise RuntimeError(f"Too many matching keys: more than {self.max_size}")
 
             self.cut = sorted(self.map, key=functools.cmp_to_key(self.key_comparator))[-1]
             del self.map[self.cut]
@@ -309,7 +328,7 @@ class PartitionMetrics(object):
 
     def __repr__(self):
         items = ("%s=%r" % (k, v) for k, v in self.__dict__.items())
-        return "%s(%s)" % (self.__class__.__name__, ','.join(items))
+        return f"{self.__class__.__name__}({','.join(items)})"
 
     def __str__(self):
         return self.__repr__()
@@ -336,16 +355,16 @@ class SnapshotSummary(object):
 class SnapshotSummaryBuilder(object):
 
     def __init__(self):
-        self.changed_partitions = dict()
+        self.changed_partitions = {}
         self.added_files = 0
         self.deleted_files = 0
         self.deleted_dupicate_files = 0
         self.added_records = 0
         self.deleted_records = 0
-        self.properties = dict()
+        self.properties = {}
 
     def clear(self):
-        self.changed_partitions = dict()
+        self.changed_partitions = {}
         self.added_files = 0
         self.deleted_files = 0
         self.deleted_dupicate_files = 0
@@ -373,8 +392,8 @@ class SnapshotSummaryBuilder(object):
             self.changed_partitions[key] = metrics.update_from_file(file, None)
 
     def build(self):
-        builder = dict()
-        builder.update(self.properties)
+        builder = {}
+        builder |= self.properties
 
         SnapshotSummaryBuilder.set_if(self.added_files > 0, builder,
                                       SnapshotSummary.ADDED_FILES_PROP, self.added_files)
@@ -394,9 +413,9 @@ class SnapshotSummaryBuilder(object):
                 metric_dict = {SnapshotSummary.ADDED_FILES_PROP: metrics.file_count,
                                SnapshotSummary.ADDED_RECORDS_PROP: metrics.record_count,
                                SnapshotSummary.ADDED_FILE_SIZE_PROP: metrics.total_size}
-                builder[SnapshotSummary.CHANGED_PARTITION_PREFIX + key] = ",".join(["{}={}".format(key, val)
-                                                                                    for inner_key, val
-                                                                                    in metric_dict.items()])
+                builder[SnapshotSummary.CHANGED_PARTITION_PREFIX + key] = ",".join(
+                    [f"{key}={val}" for inner_key, val in metric_dict.items()]
+                )
 
         return builder
 

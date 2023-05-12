@@ -48,7 +48,7 @@ class SnapshotParser(object):
             json_obj = json.loads(json_obj)
 
         if not isinstance(json_obj, dict):
-            raise RuntimeError("Cannot parse table version from a non-object: %s" % json_obj)
+            raise RuntimeError(f"Cannot parse table version from a non-object: {json_obj}")
 
         version_id = json_obj.get(SnapshotParser.SNAPSHOT_ID)
         parent_id = json_obj.get(SnapshotParser.PARENT_SNAPSHOT_ID)
@@ -63,11 +63,10 @@ class SnapshotParser(object):
                                 timestamp_millis=timestamp_millis,
                                 operation=operation,
                                 summary=summary)
-        else:
-            manifests = json_obj.get(SnapshotParser.MANIFESTS, list())
+        manifests = json_obj.get(SnapshotParser.MANIFESTS, [])
 
-            return BaseSnapshot(ops, version_id, parent_id,
-                                manifests=manifests,
-                                timestamp_millis=timestamp_millis,
-                                operation=operation,
-                                summary=summary)
+        return BaseSnapshot(ops, version_id, parent_id,
+                            manifests=manifests,
+                            timestamp_millis=timestamp_millis,
+                            operation=operation,
+                            summary=summary)

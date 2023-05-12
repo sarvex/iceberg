@@ -62,14 +62,13 @@ class InMemoryCatalog(Catalog):
 
         if identifier in self.__tables:
             raise AlreadyExistsError(f"Table already exists: {identifier}")
-        else:
-            if namespace not in self.__namespaces:
-                self.__namespaces[namespace] = {}
+        if namespace not in self.__namespaces:
+            self.__namespaces[namespace] = {}
 
-            table = Table()
-            table.identifier = identifier
-            self.__tables[identifier] = table
-            return table
+        table = Table()
+        table.identifier = identifier
+        self.__tables[identifier] = table
+        return table
 
     def load_table(self, identifier: Union[str, Identifier]) -> Table:
         identifier = Catalog.identifier_to_tuple(identifier)
@@ -123,11 +122,13 @@ class InMemoryCatalog(Catalog):
     def list_tables(self, namespace: Optional[Union[str, Identifier]] = None) -> List[Identifier]:
         if namespace:
             namespace = Catalog.identifier_to_tuple(namespace)
-            list_tables = [table_identifier for table_identifier in self.__tables.keys() if namespace == table_identifier[:-1]]
+            return [
+                table_identifier
+                for table_identifier in self.__tables.keys()
+                if namespace == table_identifier[:-1]
+            ]
         else:
-            list_tables = list(self.__tables.keys())
-
-        return list_tables
+            return list(self.__tables.keys())
 
     def list_namespaces(self) -> List[Identifier]:
         return list(self.__namespaces.keys())
@@ -143,15 +144,14 @@ class InMemoryCatalog(Catalog):
         self, namespace: Union[str, Identifier], removals: Optional[Set[str]] = None, updates: Optional[Properties] = None
     ) -> None:
         namespace = Catalog.identifier_to_tuple(namespace)
-        if namespace in self.__namespaces:
-            if removals:
-                for key in removals:
-                    if key in self.__namespaces[namespace]:
-                        del self.__namespaces[namespace][key]
-            if updates:
-                self.__namespaces[namespace].update(updates)
-        else:
+        if namespace not in self.__namespaces:
             raise NoSuchNamespaceError(f"Namespace does not exist: {namespace}")
+        if removals:
+            for key in removals:
+                if key in self.__namespaces[namespace]:
+                    del self.__namespaces[namespace][key]
+        if updates:
+            self.__namespaces[namespace].update(updates)
 
 
 TEST_TABLE_IDENTIFIER = ("com", "organization", "department", "my_table")

@@ -56,7 +56,7 @@ def get_dataset_filter(expr: Expression, expected_to_file_map: dict) -> ds.Expre
         return or_(get_dataset_filter(expr.left, expected_to_file_map),
                    get_dataset_filter(expr.right, expected_to_file_map))
     else:
-        raise RuntimeError("Unknown operation: {}".format(expr.op()))
+        raise RuntimeError(f"Unknown operation: {expr.op()}")
 
 
 def predicate(pred: Predicate, field_map: dict) -> ds.Expression:  # noqa: ignore=C901

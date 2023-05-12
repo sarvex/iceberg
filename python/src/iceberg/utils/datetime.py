@@ -44,10 +44,7 @@ def time_to_micros(time_str: str) -> int:
 
 def datetime_to_micros(dt: datetime) -> int:
     """Converts a datetime to microseconds from 1970-01-01T00:00:00.000000"""
-    if dt.tzinfo:
-        delta = dt - EPOCH_TIMESTAMPTZ
-    else:
-        delta = dt - EPOCH_TIMESTAMP
+    delta = dt - EPOCH_TIMESTAMPTZ if dt.tzinfo else dt - EPOCH_TIMESTAMP
     return (delta.days * 86400 + delta.seconds) * 1_000_000 + delta.microseconds
 
 

@@ -72,7 +72,7 @@ class AvroToIceberg(object):
     @staticmethod
     def convert_avro_schema_to_iceberg(avro_schema):
         if avro_schema.get(AvroToIceberg.FIELD_TYPE_PROP) != "record":
-            raise RuntimeError("Cannot convert avro schema to iceberg %s" % avro_schema)
+            raise RuntimeError(f"Cannot convert avro schema to iceberg {avro_schema}")
 
         struct = AvroToIceberg.convert_type(avro_schema, None)
 
@@ -83,7 +83,7 @@ class AvroToIceberg(object):
         avro_field_type = avro_field.get(AvroToIceberg.FIELD_TYPE_PROP)
 
         if avro_field_type != "record":
-            raise RuntimeError("Field type muse be 'record': %s" % avro_field_type)
+            raise RuntimeError(f"Field type muse be 'record': {avro_field_type}")
 
         fields = avro_field.get(AvroToIceberg.FIELD_FIELDS_PROP)
 
@@ -120,7 +120,7 @@ class AvroToIceberg(object):
 
         processing_func = AvroToIceberg.TYPE_PROCESSING_MAP.get(type(avro_field_type))
         if processing_func is None:
-            raise RuntimeError("No function found to process %s" % avro_field_type)
+            raise RuntimeError(f"No function found to process {avro_field_type}")
 
         iceberg_type, next_id = processing_func(field, next_id)
 
@@ -131,7 +131,7 @@ class AvroToIceberg(object):
         avro_field_type = avro_field.get(AvroToIceberg.FIELD_TYPE_PROP)
         logical_type = avro_field.get(AvroToIceberg.FIELD_LOGICAL_TYPE_PROP)
         if not isinstance(avro_field_type, str):
-            raise RuntimeError("Field type must be of type str: %s" % avro_field_type)
+            raise RuntimeError(f"Field type must be of type str: {avro_field_type}")
 
         if avro_field_type in AvroToIceberg.AVRO_JSON_PRIMITIVE_TYPES:
             if logical_type is not None:
@@ -146,17 +146,19 @@ class AvroToIceberg(object):
                 processing_func = AvroToIceberg.COMPLEX_TYPE_PROCESSING_MAP.get(avro_field_type)
 
             if processing_func is None:
-                raise RuntimeError("No function found to process %s" % avro_field_type)
+                raise RuntimeError(f"No function found to process {avro_field_type}")
 
             return processing_func(avro_field, next_id)
         else:
-            raise RuntimeError("Unknown type %s" % avro_field_type)
+            raise RuntimeError(f"Unknown type {avro_field_type}")
 
     @staticmethod
     def convert_complex_type(avro_field, next_id=None):
         avro_field_type = avro_field.get(AvroToIceberg.FIELD_TYPE_PROP)
         if not isinstance(avro_field_type, dict):
-            raise RuntimeError("Complex field type must be of type dict: %s" % avro_field_type)
+            raise RuntimeError(
+                f"Complex field type must be of type dict: {avro_field_type}"
+            )
 
         return AvroToIceberg.convert_avro_field_to_iceberg(avro_field_type, next_id)
 
@@ -164,10 +166,12 @@ class AvroToIceberg(object):
     def convert_union_type(avro_field, next_id=None):
         avro_field_type = avro_field.get(AvroToIceberg.FIELD_TYPE_PROP)
         if not isinstance(avro_field_type, list):
-            raise RuntimeError("Union field type must be of type list: %s" % avro_field_type)
+            raise RuntimeError(f"Union field type must be of type list: {avro_field_type}")
 
         if len(avro_field_type) > 2:
-            raise RuntimeError("Cannot process unions larger than 2 items: %s" % avro_field_type)
+            raise RuntimeError(
+                f"Cannot process unions larger than 2 items: {avro_field_type}"
+            )
         for item in avro_field_type:
             if isinstance(item, str) and item == "null":
                 continue
@@ -180,19 +184,21 @@ class AvroToIceberg(object):
     def convert_array_type(avro_field, next_id=None):
         avro_field_type = avro_field.get(AvroToIceberg.FIELD_TYPE_PROP)
         if avro_field_type != "array":
-            raise RuntimeError("Avro type must be array: %s" % avro_field_type)
+            raise RuntimeError(f"Avro type must be array: {avro_field_type}")
         element_id = avro_field.get(AvroToIceberg.FIELD_ELEMENT_ID_PROP)
         items = avro_field.get(AvroToIceberg.FIELD_ITEMS_PROP)
 
         is_optional = AvroToIceberg.is_option_schema(items)
 
-        if isinstance(items, str) and items in AvroToIceberg.PRIMITIVE_FIELD_TYPE_MAP:
-            item_type = AvroToIceberg.PRIMITIVE_FIELD_TYPE_MAP.get(items)
-            if item_type is None:
-                raise RuntimeError("No mapping found for type %s" % items)
-        else:
+        if (
+            not isinstance(items, str)
+            or items not in AvroToIceberg.PRIMITIVE_FIELD_TYPE_MAP
+        ):
             raise RuntimeError("Complex list types not yet implemented")
 
+        item_type = AvroToIceberg.PRIMITIVE_FIELD_TYPE_MAP.get(items)
+        if item_type is None:
+            raise RuntimeError(f"No mapping found for type {items}")
         if is_optional:
             return ListType.of_optional(element_id, item_type), next_id
         else:
@@ -203,10 +209,12 @@ class AvroToIceberg(object):
         avro_field_type = avro_field.get(AvroToIceberg.FIELD_TYPE_PROP)
         avro_logical_type = avro_field.get(AvroToIceberg.FIELD_LOGICAL_TYPE_PROP)
         if avro_field_type != "array" or avro_logical_type != "map":
-            raise RuntimeError("Avro type must be array and logical type must be map: %s" % avro_logical_type)
+            raise RuntimeError(
+                f"Avro type must be array and logical type must be map: {avro_logical_type}"
+            )
         is_optional = False
         items = avro_field.get(AvroToIceberg.FIELD_ITEMS_PROP)
-        for field in items.get(AvroToIceberg.FIELD_FIELDS_PROP, list()):
+        for field in items.get(AvroToIceberg.FIELD_FIELDS_PROP, []):
             if field.get(AvroToIceberg.FIELD_NAME_PROP) == "key":
                 key_id = field.get(AvroToIceberg.FIELD_ID_PROP)
                 if not isinstance(field.get(AvroToIceberg.FIELD_TYPE_PROP), str):
@@ -225,30 +233,31 @@ class AvroToIceberg(object):
 
     @staticmethod
     def is_option_schema(field_type):
-        if isinstance(field_type, list) and len(field_type) == 2 and "null" in field_type:
-            return True
-
-        return False
+        return (
+            isinstance(field_type, list)
+            and len(field_type) == 2
+            and "null" in field_type
+        )
 
     @staticmethod
     def read_avro_file(iceberg_schema, data_file):
         fo = data_file.new_fo()
         avro_reader = fastavro.reader(fo)
         for avro_row in avro_reader:
-            iceberg_row = dict()
-            for field in iceberg_schema.as_struct().fields:
-                iceberg_row[field.name] = AvroToIceberg.get_field_from_avro(avro_row, field)
-            yield iceberg_row
+            yield {
+                field.name: AvroToIceberg.get_field_from_avro(avro_row, field)
+                for field in iceberg_schema.as_struct().fields
+            }
         fo.close()
 
     @staticmethod
     def read_avro_row(iceberg_schema, avro_reader):
         try:
             for avro_row in avro_reader:
-                iceberg_row = dict()
-                for field in iceberg_schema.as_struct().fields:
-                    iceberg_row[field.name] = AvroToIceberg.get_field_from_avro(avro_row, field)
-                yield iceberg_row
+                yield {
+                    field.name: AvroToIceberg.get_field_from_avro(avro_row, field)
+                    for field in iceberg_schema.as_struct().fields
+                }
         except StopIteration:
             return
 
@@ -258,7 +267,9 @@ class AvroToIceberg(object):
             return AvroToIceberg.PROCESS_FUNCS.get(field.type.type_id,
                                                    AvroToIceberg.get_field_from_primitive)(avro_row, field)
         except KeyError:
-            raise RuntimeError("Don't know how to get field of type: %s" % field.type.type_id)
+            raise RuntimeError(
+                f"Don't know how to get field of type: {field.type.type_id}"
+            )
 
     @staticmethod
     def get_field_from_primitive(avro_row, field):
@@ -270,10 +281,12 @@ class AvroToIceberg(object):
 
     @staticmethod
     def get_field_from_struct(avro_row, field):
-        field_obj = {}
-        for nested_field in field.type.fields:
-            field_obj[nested_field.name] = AvroToIceberg.get_field_from_avro(avro_row[field.name], nested_field)
-        return field_obj
+        return {
+            nested_field.name: AvroToIceberg.get_field_from_avro(
+                avro_row[field.name], nested_field
+            )
+            for nested_field in field.type.fields
+        }
 
     @staticmethod
     def get_field_from_list(avro_row, field):
@@ -285,8 +298,6 @@ class AvroToIceberg(object):
 
     @staticmethod
     def get_field_from_map(avro_row, field):
-        val_map = dict()
-
         try:
             avro_value = avro_row[field.name]
         except KeyError:
@@ -295,7 +306,4 @@ class AvroToIceberg(object):
             else:
                 return None
 
-        for val in avro_value:
-            val_map[val['key']] = val['value']
-
-        return val_map
+        return {val['key']: val['value'] for val in avro_value}

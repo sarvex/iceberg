@@ -114,10 +114,10 @@ class Expressions(object):
             return UnboundPredicate(op, Expressions.ref(name), value)
         elif op in (Operation.IS_NULL, Operation.NOT_NULL):
             if value is not None or lit is not None:
-                raise RuntimeError("Cannot create {} predicate inclusive a value".format(op))
+                raise RuntimeError(f"Cannot create {op} predicate inclusive a value")
             return UnboundPredicate(op, Expressions.ref(name))
         else:
-            raise RuntimeError("Cannot create {} predicate without a value".format(op))
+            raise RuntimeError(f"Cannot create {op} predicate without a value")
 
     @staticmethod
     def always_true():
@@ -172,7 +172,7 @@ class ExpressionVisitors(object):
             return visitor.or_(ExpressionVisitors.visit(expr.left, visitor),
                                ExpressionVisitors.visit(expr.right, visitor))
         else:
-            raise RuntimeError("Unknown operation: {}".format(expr.op()))
+            raise RuntimeError(f"Unknown operation: {expr.op()}")
 
     class ExpressionVisitor(object):
 
@@ -238,7 +238,7 @@ class ExpressionVisitors(object):
         def predicate(self, pred): # noqa
 
             if isinstance(pred, UnboundPredicate):
-                raise RuntimeError("Not a bound Predicate: {}".format(pred))
+                raise RuntimeError(f"Not a bound Predicate: {pred}")
 
             if pred.op == Operation.IS_NULL:
                 return self.is_null(pred.ref)
@@ -263,7 +263,7 @@ class ExpressionVisitors(object):
             elif pred.op == Operation.NOT_IN:
                 return self.not_in(pred.ref, pred.lit)
             else:
-                raise RuntimeError("Unknown operation for Predicate: {}".format(pred.op))
+                raise RuntimeError(f"Unknown operation for Predicate: {pred.op}")
 
 
 class RewriteNot(ExpressionVisitors.ExpressionVisitor):

@@ -35,8 +35,8 @@ from iceberg.exceptions import AlreadyExistsException, CommitFailedException
 import pytest
 
 SCHEMA = Schema([NestedField.optional(1, "b", BooleanType.get())])
-METADATA = dict()
-VERSIONS = dict()
+METADATA = {}
+VERSIONS = {}
 
 
 class LocalTableOperations(TableOperations):
@@ -67,7 +67,9 @@ class LocalTableOperations(TableOperations):
 def create(temp, name, schema, spec):
     ops = TestTableOperations(name, temp)
     if ops.current() is not None:
-        raise AlreadyExistsException("Table %s already exists at location: %s" % (name, temp))
+        raise AlreadyExistsException(
+            f"Table {name} already exists at location: {temp}"
+        )
     ops.commit(None, TableMetadata.new_table_metadata(ops, schema, spec, str(temp)))
     return TestTable(ops, name)
 
@@ -114,16 +116,15 @@ class TestTableOperations(TableOperations):
             raise RuntimeError("Cannot commit changes based on stale metadata")
 
         self.refresh()
-        if base == self.current():
-            if self._fail_commits > 0:
-                self._fail_commits - 1
-                raise RuntimeError("Injected failure")
-            version = VERSIONS.get(self.table_name)
-            VERSIONS[self.table_name] = 0 if version is None else version + 1
-            METADATA[self.table_name] = metadata
-            self._current = metadata
-        else:
+        if base != self.current():
             raise CommitFailedException("Commit failed: table was updated at %s", self.current.last_updated_millis)
+        if self._fail_commits > 0:
+            self._fail_commits - 1
+            raise RuntimeError("Injected failure")
+        version = VERSIONS.get(self.table_name)
+        VERSIONS[self.table_name] = 0 if version is None else version + 1
+        METADATA[self.table_name] = metadata
+        self._current = metadata
 
     def new_input_file(self, path):
         return Files.local_input(path)
@@ -133,7 +134,7 @@ class TestTableOperations(TableOperations):
 
     def delete_file(self, path):
         if not os.remove(path):
-            raise RuntimeError("Failed to delete file: %s" % path)
+            raise RuntimeError(f"Failed to delete file: {path}")
 
     def new_snapshot_id(self):
         next_snapshot_id = self.last_snapshot_id + 1
@@ -147,7 +148,7 @@ class TestTables(object):
         ops = TestTableOperations(name, temp)
 
         if ops.current() is not None:
-            raise RuntimeError("Table %s already exists at location: %s" % (name, temp))
+            raise RuntimeError(f"Table {name} already exists at location: {temp}")
 
         ops.commit(None, TableMetadata.new_table_metadata(ops, schema, spec, str(temp)))
         return TestTable(ops, name)
@@ -230,7 +231,7 @@ def expected_metadata_sorting():
                                     manifests=[GenericManifestFile(file=Files.local_input("file:/tmp/manfiest.2.avro"),
                                                                    spec_id=spec.spec_id)])
 
-    reversed_snapshot_log = list()
+    reversed_snapshot_log = []
     metadata = TableMetadata(ops, None, "s3://bucket/test/location",
                              int(time.time()), 3, spec_schema, 5, [spec], {"property": "value"}, current_snapshot_id,
                              [previous_snapshot, current_snapshot], reversed_snapshot_log)
@@ -286,18 +287,24 @@ def base_scan_schema():
 
 @pytest.fixture(scope="session", params=["none", "one"])
 def base_scan_partition(base_scan_schema, request):
-    if request.param == "none":
-        spec = PartitionSpec.unpartitioned()
-    else:
-        spec = PartitionSpecBuilder(base_scan_schema).add(1, 1000, "id", "identity").build()
-    return spec
+    return (
+        PartitionSpec.unpartitioned()
+        if request.param == "none"
+        else PartitionSpecBuilder(base_scan_schema)
+        .add(1, 1000, "id", "identity")
+        .build()
+    )
 
 
 @pytest.fixture(scope="session")
 def ts_table(base_scan_schema, base_scan_partition):
     with tempfile.TemporaryDirectory() as td:
-        return TestTables.create(td, "test-" + str(len(base_scan_partition.fields)), base_scan_schema,
-                                 base_scan_partition)
+        return TestTables.create(
+            td,
+            f"test-{len(base_scan_partition.fields)}",
+            base_scan_schema,
+            base_scan_partition,
+        )
 
 
 @pytest.fixture(scope="session")
@@ -307,8 +314,12 @@ def split_planning_table(base_scan_schema):
 
     with tempfile.TemporaryDirectory() as td:
         table = tables.create(base_scan_schema, table_identifier=td)
-        table.properties().update({TableProperties.SPLIT_SIZE: "{}".format(128 * 1024 * 1024),
-                                   TableProperties.SPLIT_OPEN_FILE_COST: "{}".format(4 * 1024 * 1024),
-                                   TableProperties.SPLIT_LOOKBACK: "{}".format(2 ** 31 - 1)})
+        table.properties().update(
+            {
+                TableProperties.SPLIT_SIZE: f"{128 * 1024 * 1024}",
+                TableProperties.SPLIT_OPEN_FILE_COST: f"{4 * 1024 * 1024}",
+                TableProperties.SPLIT_LOOKBACK: f"{2**31 - 1}",
+            }
+        )
 
         return table

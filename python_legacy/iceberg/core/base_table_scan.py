@@ -56,23 +56,25 @@ class BaseTableScan(CloseableGroup, TableScan):
         self._row_filter = row_filter
         self._case_sensitive = case_sensitive
         self.selected_columns = selected_columns
-        self.minused_cols = minused_cols or list()
-        self.options = options if options is not None else dict()
+        self.minused_cols = minused_cols or []
+        self.options = options if options is not None else {}
 
         if self.columns is None and self._row_filter is None:
             self.columns = Filterable.ALL_COLUMNS
             self._row_filter = Expressions.always_true()
 
-        self._stats = dict()
+        self._stats = {}
 
     def is_case_sensitive(self):
         return self.case_sensitive
 
     def use_snapshot(self, snapshot_id):
         if self.snapshot_id is not None:
-            raise RuntimeError("Cannot override snapshot, already set to id=%s" % self.snapshot_id)
+            raise RuntimeError(
+                f"Cannot override snapshot, already set to id={self.snapshot_id}"
+            )
         if self.ops.current().snapshot(snapshot_id) is None:
-            raise RuntimeError("Cannot find snapshot with ID %s" % self.snapshot_id)
+            raise RuntimeError(f"Cannot find snapshot with ID {self.snapshot_id}")
 
         return self.new_refined_scan(self.ops, self.table, self._schema, snapshot_id=snapshot_id,
                                      row_filter=self._row_filter, case_sensitive=self._case_sensitive,
@@ -117,8 +119,8 @@ class BaseTableScan(CloseableGroup, TableScan):
                                      options=self.options, minused_cols=self.minused_cols)
 
     def option(self, property, value):
-        builder = dict()
-        builder.update(self.options)
+        builder = {}
+        builder |= self.options
         builder[property] = value
         return self.new_refined_scan(self.ops, self.table, self._schema, snapshot_id=self.snapshot_id,
                                      row_filter=self._row_filter, case_sensitive=self._case_sensitive,
@@ -127,11 +129,11 @@ class BaseTableScan(CloseableGroup, TableScan):
 
     def plan_files(self, ops=None, snapshot=None, row_filter=None):
 
-        if not all(i is None for i in [ops, snapshot, row_filter]):
+        if any(i is not None for i in [ops, snapshot, row_filter]):
             raise NotImplementedError()
 
         snapshot = self.ops.current().snapshot(self.snapshot_id) \
-            if self.snapshot_id is not None else self.ops.current().current_snapshot()
+                if self.snapshot_id is not None else self.ops.current().current_snapshot()
 
         if snapshot is not None:
             _logger.info("Scanning table {} snapshot {} created at {} with filter {}"
@@ -165,10 +167,13 @@ class BaseTableScan(CloseableGroup, TableScan):
 
     def split_files(self, split_size):
         file_scan_tasks = list(self.plan_files())
-        split_tasks = [task for split_tasks in [scan_task.split(split_size) for scan_task in file_scan_tasks]
-                       for task in split_tasks]
-
-        return split_tasks
+        return [
+            task
+            for split_tasks in [
+                scan_task.split(split_size) for scan_task in file_scan_tasks
+            ]
+            for task in split_tasks
+        ]
 
     @property
     def schema(self):
@@ -204,10 +209,7 @@ class BaseTableScan(CloseableGroup, TableScan):
         return select(self.table.schema(), required_field_ids)
 
     def __repr__(self):
-        return "BaseTableScan(table={}, projection={}, filter={}, case_sensitive={}".format(self.table,
-                                                                                            self._schema.as_struct(),
-                                                                                            self._row_filter,
-                                                                                            self._case_sensitive)
+        return f"BaseTableScan(table={self.table}, projection={self._schema.as_struct()}, filter={self._row_filter}, case_sensitive={self._case_sensitive}"
 
     def __str__(self):
         return self.__repr__()

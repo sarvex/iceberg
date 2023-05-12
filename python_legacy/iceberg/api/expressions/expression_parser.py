@@ -42,7 +42,7 @@ AND, OR, IN, IS, NOT, NULL, BETWEEN = map(
 )
 NOT_NULL = NOT + NULL
 
-ident = Word(alphas, alphanums + "_$").setName("identifier")
+ident = Word(alphas, f"{alphanums}_$").setName("identifier")
 columnName = delimitedList(ident, ".", combine=True).setName("column name")
 
 binop = oneOf("= == != < > >= <= eq ne lt le gt ge <>", caseless=False)
@@ -54,19 +54,33 @@ columnRval = (realNum
               | quotedString.setParseAction(removeQuotes)
               | columnName)  # need to add support for alg expressions
 whereCondition = Group(
-    (columnName + binop + columnRval)
-    | (columnName + IN + Group("(" + delimitedList(columnRval) + ")"))
-    | (columnName + IS + (NULL | NOT_NULL))
-    | (columnName + BETWEEN + columnRval + AND + columnRval)
-
+    (
+        (
+            columnName + binop + columnRval
+            | columnName + IN + Group(f"({delimitedList(columnRval)})")
+        )
+        | columnName + IS + (NULL | NOT_NULL)
+        | columnName + BETWEEN + columnRval + AND + columnRval
+    )
 )
 
 whereExpression = infixNotation(
-    Group(whereCondition
-          | NOT + whereCondition
-          | NOT + Group('(' + whereCondition + ')')
-          | NOT + columnName),
-    [(NOT, 1, opAssoc.LEFT), (AND, 2, opAssoc.LEFT), (OR, 2, opAssoc.LEFT), (IS, 2, opAssoc.LEFT)],
+    Group(
+        (
+            (
+                whereCondition
+                | NOT + whereCondition
+                | NOT + Group(f'({whereCondition})')
+            )
+            | NOT + columnName
+        )
+    ),
+    [
+        (NOT, 1, opAssoc.LEFT),
+        (AND, 2, opAssoc.LEFT),
+        (OR, 2, opAssoc.LEFT),
+        (IS, 2, opAssoc.LEFT),
+    ],
 )
 
 op_map = {"=": "eq",
@@ -97,27 +111,22 @@ op_map = {"=": "eq",
 def get_expr_tree(tokens):
     if isinstance(tokens, (str, int)):
         return tokens
-    if len(tokens) > 1:
-        if (tokens[0] == "not"):
-            return {"not": get_expr_tree(tokens[1])}
-        if (tokens[0] == "(" and tokens[-1] == ")"):
-            return get_expr_tree(tokens[1:-1])
-    else:
+    if len(tokens) <= 1:
         return get_expr_tree(tokens[0])
 
+    if (tokens[0] == "not"):
+        return {"not": get_expr_tree(tokens[1])}
+    if (tokens[0] == "(" and tokens[-1] == ")"):
+        return get_expr_tree(tokens[1:-1])
     op = op_map[tokens[1]]
 
-    if op == "in":
-        return {'in': [get_expr_tree(tokens[0]), [token for token in tokens[2][1:-1]]]}
-    elif op == "between":
+    if op == "between":
         return {'and': [{"gte": [get_expr_tree(tokens[0]), tokens[2]]},
                         {"lte": [get_expr_tree(tokens[0]), tokens[4]]}]}
+    elif op == "in":
+        return {'in': [get_expr_tree(tokens[0]), list(tokens[2][1:-1])]}
     elif op == "is":
-
-        if tokens[2] == 'null':
-            return {"missing": tokens[0]}
-        else:
-            return {"exists": tokens[0]}
+        return {"missing": tokens[0]} if tokens[2] == 'null' else {"exists": tokens[0]}
     if len(tokens) > 3:
         binary_tuples = get_expr_tree(tokens[2:])
     else:
@@ -137,7 +146,7 @@ def get_expr(node, expr_map):
         if len(mapped_op) == 1:
             mapped_op = mapped_op[0]
         if mapped_op is None:
-            raise RuntimeError("no mapping for op: %s" % op)
+            raise RuntimeError(f"no mapping for op: {op}")
         if op in ("not", "exists", "missing"):
             return mapped_op(get_expr(node[op], expr_map))
 
@@ -158,5 +167,7 @@ def parse_expr_string(predicate_string, expr_map):
         expr = get_expr_tree(expr)
         return get_expr(expr, expr_map)
     except ParseException as pe:
-        _logger.error("Error parsing string expression into iceberg expression: %s" % str(pe))
+        _logger.error(
+            f"Error parsing string expression into iceberg expression: {str(pe)}"
+        )
         raise

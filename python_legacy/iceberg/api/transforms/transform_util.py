@@ -40,7 +40,7 @@ class TransformUtil(object):
     @staticmethod
     def human_time(micros_from_midnight):
         day = TransformUtil.EPOCH + timedelta(microseconds=micros_from_midnight)
-        return "{}".format(day.time())
+        return f"{day.time()}"
 
     @staticmethod
     def human_timestamp_with_timezone(timestamp_micros):

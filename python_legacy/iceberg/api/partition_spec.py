@@ -46,9 +46,8 @@ class PartitionSpec(object):
 
         self.schema = schema
         self.spec_id = spec_id
-        self.__fields = list()
-        for field in fields:
-            self.__fields.append(field)
+        self.__fields = []
+        self.__fields.extend(iter(fields))
         self.last_assigned_field_id = last_assigned_field_id
 
     @property
@@ -70,8 +69,8 @@ class PartitionSpec(object):
         return self.lazy_fields_by_source_id().get(field_id)
 
     def partition_type(self):
-        struct_fields = list()
-        for _i, field in enumerate(self.__fields):
+        struct_fields = []
+        for field in self.__fields:
             source_type = self.schema.find_type(field.source_id)
             result_type = field.transform.get_result_type(source_type)
             struct_fields.append(NestedField.optional(field.field_id,
@@ -87,7 +86,7 @@ class PartitionSpec(object):
         return quote_plus(string, encoding="UTF-8")
 
     def partition_to_path(self, data):
-        sb = list()
+        sb = []
         java_classes = self.java_classes
         for i, jclass in enumerate(java_classes):
             field = self.__fields[i]
@@ -95,10 +94,7 @@ class PartitionSpec(object):
 
             if i > 0:
                 sb.append("/")
-            sb.append(field.name)
-            sb.append("=")
-            sb.append(self.escape(value_string))
-
+            sb.extend((field.name, "=", self.escape(value_string)))
         return "".join(sb)
 
     def compatible_with(self, other):
@@ -117,20 +113,12 @@ class PartitionSpec(object):
 
     def lazy_fields_by_source_id(self):
         if self.fields_by_source_id is None:
-            self.fields_by_source_id = dict()
-            for field in self.fields:
-                self.fields_by_source_id[field.source_id] = field
-
+            self.fields_by_source_id = {field.source_id: field for field in self.fields}
         return self.fields_by_source_id
 
     def identity_source_ids(self):
-        source_ids = set()
         fields = self.fields
-        for field in fields:
-            if "identity" == str(field.transform()):
-                source_ids.add(field)
-
-        return source_ids
+        return {field for field in fields if str(field.transform()) == "identity"}
 
     def lazy_field_list(self):
         if self.field_list is None:
@@ -140,10 +128,7 @@ class PartitionSpec(object):
 
     def lazy_fields_by_source_name(self):
         if self.fields_by_name is None:
-            self.fields_by_name = dict()
-            for field in self.__fields:
-                self.fields_by_name[field.name] = field
-
+            self.fields_by_name = {field.name: field for field in self.__fields}
         return self.fields_by_name
 
     def __eq__(self, other):
@@ -170,12 +155,15 @@ class PartitionSpec(object):
     def __repr__(self):
         sb = ["["]
 
-        for field in self.__fields:
-            sb.append("\n {field_id}: {name}: {transform}({source_id})".format(field_id=field.field_id,
-                                                                               name=field.name,
-                                                                               transform=str(field.transform),
-                                                                               source_id=field.source_id))
-
+        sb.extend(
+            "\n {field_id}: {name}: {transform}({source_id})".format(
+                field_id=field.field_id,
+                name=field.name,
+                transform=str(field.transform),
+                source_id=field.source_id,
+            )
+            for field in self.__fields
+        )
         if len(self.__fields) > 0:
             sb.append("\n")
         sb.append("]")
@@ -200,9 +188,9 @@ class PartitionSpecBuilder(object):
 
     def __init__(self, schema):
         self.schema = schema
-        self.fields = list()
+        self.fields = []
         self.partition_names = set()
-        self.dedup_fields = dict()
+        self.dedup_fields = {}
         self.spec_id = 0
         self.last_assigned_field_id = PartitionSpec.PARTITION_DATA_ID_START - 1
 
@@ -216,17 +204,20 @@ class PartitionSpecBuilder(object):
 
     def check_and_add_partition_name(self, name, source_column_id=None):
         schema_field = self.schema.find_field(name)
-        if source_column_id is not None:
-            if schema_field is not None and schema_field.field_id != source_column_id:
-                raise ValueError("Cannot create identity partition sourced from different field in schema: %s" % name)
-        else:
+        if source_column_id is None:
             if schema_field is not None:
-                raise ValueError("Cannot create partition from name that exists in schema: %s" % name)
+                raise ValueError(
+                    f"Cannot create partition from name that exists in schema: {name}"
+                )
 
+        elif schema_field is not None and schema_field.field_id != source_column_id:
+            raise ValueError(
+                f"Cannot create identity partition sourced from different field in schema: {name}"
+            )
         if name is None or name == "":
-            raise ValueError("Cannot use empty or null partition name: %s" % name)
+            raise ValueError(f"Cannot use empty or null partition name: {name}")
         if name in self.partition_names:
-            raise ValueError("Cannot use partition names more than once: %s" % name)
+            raise ValueError(f"Cannot use partition names more than once: {name}")
 
         self.partition_names.add(name)
         return self
@@ -239,14 +230,16 @@ class PartitionSpecBuilder(object):
         dedup_key = (field.source_id, field.transform.dedup_name())
         partition_field = self.dedup_fields.get(dedup_key)
         if partition_field is not None:
-            raise ValueError("Cannot add redundant partition: %s conflicts with %s" % (partition_field, field))
+            raise ValueError(
+                f"Cannot add redundant partition: {partition_field} conflicts with {field}"
+            )
         self.dedup_fields[dedup_key] = field
         self.fields.append(field)
 
     def find_source_column(self, source_name):
         source_column = self.schema.find_field(source_name)
         if source_column is None:
-            raise RuntimeError("Cannot find source column: %s" % source_name)
+            raise RuntimeError(f"Cannot find source column: {source_name}")
 
         return source_column
 
@@ -263,7 +256,7 @@ class PartitionSpecBuilder(object):
 
     def year(self, source_name, target_name=None):
         if target_name is None:
-            target_name = "{}_year".format(source_name)
+            target_name = f"{source_name}_year"
 
         self.check_and_add_partition_name(target_name)
         source_column = self.find_source_column(source_name)
@@ -274,7 +267,7 @@ class PartitionSpecBuilder(object):
 
     def month(self, source_name, target_name=None):
         if target_name is None:
-            target_name = "{}_month".format(source_name)
+            target_name = f"{source_name}_month"
 
         self.check_and_add_partition_name(target_name)
         source_column = self.find_source_column(source_name)
@@ -285,7 +278,7 @@ class PartitionSpecBuilder(object):
 
     def day(self, source_name, target_name=None):
         if target_name is None:
-            target_name = "{}_day".format(source_name)
+            target_name = f"{source_name}_day"
 
         self.check_and_add_partition_name(target_name)
         source_column = self.find_source_column(source_name)
@@ -296,7 +289,7 @@ class PartitionSpecBuilder(object):
 
     def hour(self, source_name, target_name=None):
         if target_name is None:
-            target_name = "{}_hour".format(source_name)
+            target_name = f"{source_name}_hour"
 
         self.check_and_add_partition_name(target_name)
         source_column = self.find_source_column(source_name)
@@ -307,7 +300,7 @@ class PartitionSpecBuilder(object):
 
     def bucket(self, source_name, num_buckets, target_name=None):
         if target_name is None:
-            target_name = "{}_bucket".format(source_name)
+            target_name = f"{source_name}_bucket"
 
         self.check_and_add_partition_name(target_name)
         source_column = self.find_source_column(source_name)
@@ -319,7 +312,7 @@ class PartitionSpecBuilder(object):
 
     def truncate(self, source_name, width, target_name=None):
         if target_name is None:
-            target_name = "{}_truncate".format(source_name)
+            target_name = f"{source_name}_truncate"
 
         self.check_and_add_partition_name(target_name)
         source_column = self.find_source_column(source_name)
@@ -335,7 +328,7 @@ class PartitionSpecBuilder(object):
     def add(self, source_id: int, field_id: int, name: str, transform: str) -> "PartitionSpecBuilder":
         column = self.schema.find_field(source_id)
         if column is None:
-            raise ValueError("Cannot find source column: %s" % source_id)
+            raise ValueError(f"Cannot find source column: {source_id}")
 
         transform_obj = Transforms.from_string(column.type, transform)
         self.check_and_add_partition_name(name, source_id)

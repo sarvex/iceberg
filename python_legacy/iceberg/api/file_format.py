@@ -28,7 +28,7 @@ class FileFormat(Enum):
         if filename.endswith(self.value["extension"]):
             return filename
         else:
-            return filename + "." + self.value["extension"]
+            return f"{filename}." + self.value["extension"]
 
     def is_splittable(self):
         return self.value["splittable"]

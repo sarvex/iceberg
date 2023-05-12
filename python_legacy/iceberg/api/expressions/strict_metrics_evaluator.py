@@ -85,11 +85,13 @@ class StrictMetricsEvaluator(object):
         def is_null(self, ref):
             id = ref.field.field_id
             if self.struct.field(id=id) is None:
-                raise RuntimeError("Cannot filter by nested column: %s" % self.schema.find_field(id))
+                raise RuntimeError(
+                    f"Cannot filter by nested column: {self.schema.find_field(id)}"
+                )
 
             if self.value_counts is not None and self.value_counts.get(id) is not None \
-                    and self.null_counts is not None and self.null_counts.get(id) is not None \
-                    and self.value_counts.get(id) - self.null_counts.get(id) == 0:
+                            and self.null_counts is not None and self.null_counts.get(id) is not None \
+                            and self.value_counts.get(id) - self.null_counts.get(id) == 0:
                 return StrictMetricsEvaluator.MetricsEvalVisitor.ROWS_MUST_MATCH
 
             return StrictMetricsEvaluator.MetricsEvalVisitor.ROWS_MIGHT_NOT_MATCH
@@ -97,7 +99,9 @@ class StrictMetricsEvaluator(object):
         def not_null(self, ref):
             id = ref.field.field_id
             if self.struct.field(id=id) is None:
-                raise RuntimeError("Cannot filter by nested column: %s" % self.schema.find_field(id))
+                raise RuntimeError(
+                    f"Cannot filter by nested column: {self.schema.find_field(id)}"
+                )
 
             if self.null_counts is not None and self.null_counts.get(id, -1) == 0:
                 return StrictMetricsEvaluator.MetricsEvalVisitor.ROWS_MUST_MATCH
@@ -111,7 +115,9 @@ class StrictMetricsEvaluator(object):
             field = self.struct.field(id=id)
 
             if field is None:
-                raise RuntimeError("Cannot filter by nested column: %s" % self.schema.find_field(id))
+                raise RuntimeError(
+                    f"Cannot filter by nested column: {self.schema.find_field(id)}"
+                )
 
             if self.upper_bounds is not None and id in self.upper_bounds:
                 upper = Conversions.from_byte_buffer(field.type, self.upper_bounds.get(id))
@@ -127,7 +133,9 @@ class StrictMetricsEvaluator(object):
             field = self.struct.field(id=id)
 
             if field is None:
-                raise RuntimeError("Cannot filter by nested column: %s" % self.schema.find_field(id))
+                raise RuntimeError(
+                    f"Cannot filter by nested column: {self.schema.find_field(id)}"
+                )
 
             if self.upper_bounds is not None and id in self.upper_bounds:
                 upper = Conversions.from_byte_buffer(field.type, self.upper_bounds.get(id))
@@ -143,7 +151,9 @@ class StrictMetricsEvaluator(object):
             field = self.struct.field(id=id)
 
             if field is None:
-                raise RuntimeError("Cannot filter by nested column: %s" % self.schema.find_field(id))
+                raise RuntimeError(
+                    f"Cannot filter by nested column: {self.schema.find_field(id)}"
+                )
 
             if self.lower_bounds is not None and id in self.lower_bounds:
                 lower = Conversions.from_byte_buffer(field.type, self.lower_bounds.get(id))
@@ -159,7 +169,9 @@ class StrictMetricsEvaluator(object):
             field = self.struct.field(id=id)
 
             if field is None:
-                raise RuntimeError("Cannot filter by nested column: %s" % self.schema.find_field(id))
+                raise RuntimeError(
+                    f"Cannot filter by nested column: {self.schema.find_field(id)}"
+                )
 
             if self.lower_bounds is not None and id in self.lower_bounds:
                 lower = Conversions.from_byte_buffer(field.type, self.lower_bounds.get(id))
@@ -175,10 +187,12 @@ class StrictMetricsEvaluator(object):
             field = self.struct.field(id=id)
 
             if field is None:
-                raise RuntimeError("Cannot filter by nested column: %s" % self.schema.find_field(id))
+                raise RuntimeError(
+                    f"Cannot filter by nested column: {self.schema.find_field(id)}"
+                )
 
             if self.lower_bounds is not None and id in self.lower_bounds \
-                    and self.upper_bounds is not None and id in self.upper_bounds:
+                            and self.upper_bounds is not None and id in self.upper_bounds:
                 lower = Conversions.from_byte_buffer(field.type, self.lower_bounds.get(id))
                 if lower != lit.value:
                     return StrictMetricsEvaluator.MetricsEvalVisitor.ROWS_MIGHT_NOT_MATCH
@@ -199,7 +213,9 @@ class StrictMetricsEvaluator(object):
             field = self.struct.field(id=id)
 
             if field is None:
-                raise RuntimeError("Cannot filter by nested column: %s" % self.schema.find_field(id))
+                raise RuntimeError(
+                    f"Cannot filter by nested column: {self.schema.find_field(id)}"
+                )
 
             if self.lower_bounds is not None and id in self.lower_bounds:
                 lower = Conversions.from_byte_buffer(field.type, self.lower_bounds.get(id))

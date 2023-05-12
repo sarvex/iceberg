@@ -61,7 +61,7 @@ class Binder(object):
 
         def predicate(self, pred):
             if isinstance(pred, BoundPredicate):
-                raise RuntimeError("Found already bound predicate: {}".format(pred))
+                raise RuntimeError(f"Found already bound predicate: {pred}")
 
             return pred.bind(self.struct, self.case_sensitive)
 

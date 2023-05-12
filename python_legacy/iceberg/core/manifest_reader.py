@@ -73,12 +73,15 @@ class ManifestReader(CloseableGroup, Filterable):
         self._case_sensitive = case_sensitive
 
         self._entries = None
-        self._avro_rows = list()
+        self._avro_rows = []
         self._fo = None
         self._avro_reader = None
         self._avro_rows = None
 
-        if not all([item is not None for item in [self.file, self.metadata, self.spec, self.schema]]):
+        if any(
+            item is None
+            for item in [self.file, self.metadata, self.spec, self.schema]
+        ):
             if self.spec is not None:
                 self.__init_from_spec()
             else:
@@ -101,7 +104,7 @@ class ManifestReader(CloseableGroup, Filterable):
             self.spec = PartitionSpecParser.from_json_fields(self.schema, spec_id, self.metadata.get("partition-spec"))
 
     def __init_from_spec(self):
-        self.metadata = dict()
+        self.metadata = {}
         self.schema = self.spec.schema
 
     def case_sensitive(self, case_sensitive):
@@ -109,8 +112,8 @@ class ManifestReader(CloseableGroup, Filterable):
                               schema=self.schema, case_sensitive=case_sensitive)
 
     def cache_changes(self):
-        adds = list()
-        deletes = list()
+        adds = []
+        deletes = []
         for entry in self.entries(ManifestReader.CHANGE_COLUMNS):
             if entry.status == "ADDED":
                 adds.append(entry.copy())
@@ -138,20 +141,19 @@ class ManifestReader(CloseableGroup, Filterable):
 
         file_format = FileFormat.from_file_name(self.file.location())
         if file_format is None:
-            raise RuntimeError("Unable to determine format of manifest: %s" % self.file)
+            raise RuntimeError(f"Unable to determine format of manifest: {self.file}")
 
         proj_schema = ManifestEntry.project_schema(self.spec.partition_type(), columns)
 
-        if self._entries is None:
-            if file_format is FileFormat.AVRO:
-                self._entries = list()
-                for read_entry in AvroToIceberg.read_avro_row(proj_schema, self._avro_reader):
-                    entry = ManifestEntry(schema=proj_schema, partition_type=self.spec.partition_type())
-                    for i, key in enumerate(read_entry.keys()):
-                        entry.put(i, read_entry[key])
-                    self._entries.append(entry)
-                self._fo.close()
-                self._avro_reader = None
+        if self._entries is None and file_format is FileFormat.AVRO:
+            self._entries = []
+            for read_entry in AvroToIceberg.read_avro_row(proj_schema, self._avro_reader):
+                entry = ManifestEntry(schema=proj_schema, partition_type=self.spec.partition_type())
+                for i, key in enumerate(read_entry.keys()):
+                    entry.put(i, read_entry[key])
+                self._entries.append(entry)
+            self._fo.close()
+            self._avro_reader = None
 
         return self._entries
 

@@ -69,7 +69,7 @@ class TruncateInteger(Truncate):
         return type_var.type_id == TypeID.INTEGER
 
     def project(self, name, predicate):
-        if predicate.op == Operation.NOT_NULL or predicate.op == Operation.IS_NULL:
+        if predicate.op in [Operation.NOT_NULL, Operation.IS_NULL]:
             return Expressions.predicate(predicate.op, name)
 
         return ProjectionUtil.truncate_integer(name, predicate, self)
@@ -110,7 +110,7 @@ class TruncateInteger(Truncate):
         return TruncateInteger.__class__, self.W
 
     def __str__(self):
-        return "truncate[%s]" % self.W
+        return f"truncate[{self.W}]"
 
 
 class TruncateLong(Truncate):
@@ -125,7 +125,7 @@ class TruncateLong(Truncate):
         return type_var.type_id == TypeID.LONG
 
     def project(self, name, predicate):
-        if predicate.op == Operation.NOT_NULL or predicate.op == Operation.IS_NULL:
+        if predicate.op in [Operation.NOT_NULL, Operation.IS_NULL]:
             return Expressions.predicate(predicate.op, name)
 
         return ProjectionUtil.truncate_long(name, predicate, self)
@@ -149,7 +149,7 @@ class TruncateLong(Truncate):
         return TruncateLong.__class__, self.W
 
     def __str__(self):
-        return "truncate[%s]" % self.W
+        return f"truncate[{self.W}]"
 
 
 class TruncateDecimal(Truncate):
@@ -160,13 +160,13 @@ class TruncateDecimal(Truncate):
     def apply(self, value):
         unscaled_value = TransformUtil.unscale_decimal(value)
         applied_value = unscaled_value - (((unscaled_value % self.unscaled_width) + self.unscaled_width) % self.unscaled_width)
-        return Decimal("{}e{}".format(applied_value, value.as_tuple().exponent))
+        return Decimal(f"{applied_value}e{value.as_tuple().exponent}")
 
     def can_transform(self, type_var):
         return type_var.type_id == TypeID.DECIMAL
 
     def project(self, name, predicate):
-        if predicate.op == Operation.NOT_NULL or predicate.op == Operation.IS_NULL:
+        if predicate.op in [Operation.NOT_NULL, Operation.IS_NULL]:
             return Expressions.predicate(predicate.op, name)
 
         return ProjectionUtil.truncate_decimal(name, predicate, self)
@@ -190,7 +190,7 @@ class TruncateDecimal(Truncate):
         return TruncateDecimal.__class__, self.unscaled_width
 
     def __str__(self):
-        return "truncate[%s]" % self.unscaled_width
+        return f"truncate[{self.unscaled_width}]"
 
 
 class TruncateString(Truncate):
@@ -198,13 +198,13 @@ class TruncateString(Truncate):
         self.L = length
 
     def apply(self, value):
-        return value[0:min(self.L, len(value))]
+        return value[:min(self.L, len(value))]
 
     def can_transform(self, type_var):
         return type_var.type_id == TypeID.STRING
 
     def project(self, name, predicate):
-        if predicate.op == Operation.NOT_NULL or predicate.op == Operation.IS_NULL:
+        if predicate.op in [Operation.NOT_NULL, Operation.IS_NULL]:
             return Expressions.predicate(predicate.op, name)
 
         return ProjectionUtil.truncate_array(name, predicate, self)
@@ -228,4 +228,4 @@ class TruncateString(Truncate):
         return TruncateString.__class__, self.L
 
     def __str__(self):
-        return "truncate[%s]" % self.L
+        return f"truncate[{self.L}]"

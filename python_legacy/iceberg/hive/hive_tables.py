@@ -73,12 +73,18 @@ class HiveTables(BaseMetastoreTables):
         oprot = self.conf.get(HiveTables.OPROT)
         if HiveTables.THRIFT_URIS in self.conf:
             metastore_uri = urlparse(self.conf[HiveTables.THRIFT_URIS])
-            client = hmsclient.HMSClient(iprot=iprot, oprot=oprot, host=metastore_uri.hostname, port=metastore_uri.port)
+            return hmsclient.HMSClient(
+                iprot=iprot,
+                oprot=oprot,
+                host=metastore_uri.hostname,
+                port=metastore_uri.port,
+            )
         else:
             if iprot is None:
-                raise Exception("Error when creating hmsclient, either pass in {} or {}".format(HiveTables.THRIFT_URIS, HiveTables.IPROT))
-            client = hmsclient.HMSClient(iprot=iprot, oprot=oprot, host=None, port=None)
-        return client
+                raise Exception(
+                    f"Error when creating hmsclient, either pass in {HiveTables.THRIFT_URIS} or {HiveTables.IPROT}"
+                )
+            return hmsclient.HMSClient(iprot=iprot, oprot=oprot, host=None, port=None)
 
     def drop(self, database: str, table: str, purge: bool = False) -> None:
         ops = self.new_table_ops(self.conf, database, table)
@@ -89,17 +95,15 @@ class HiveTables(BaseMetastoreTables):
             _logger.info("Deleting {database}.{table} from Hive Metastore".format(database=database, table=table))
             open_client.drop_table(database, table, deleteData=False)
 
-        if purge:
-            # Follow Iceberg metadata pointers to delete every file
-            if metadata is not None:
-                with Pool(self.conf.get(WORKER_THREAD_POOL_SIZE_PROP,
-                                        cpu_count())) as delete_pool:
-                    deleter = DeleteFiles(ops)
-                    for s in metadata.snapshots:
-                        for m in s.manifests:
-                            delete_pool.map(deleter.delete_file,
-                                            (i.path() for i in s.get_filtered_manifest(m.manifest_path).iterator()))
-                        delete_pool.map(deleter.delete_file, (m.manifest_path for m in s.manifests))
-                        if s.manifest_location is not None:
-                            delete_pool.map(deleter.delete_file, [s.manifest_location])
-                    delete_pool.map(deleter.delete_file, [ops.current_metadata_location])
+        if purge and metadata is not None:
+            with Pool(self.conf.get(WORKER_THREAD_POOL_SIZE_PROP,
+                                    cpu_count())) as delete_pool:
+                deleter = DeleteFiles(ops)
+                for s in metadata.snapshots:
+                    for m in s.manifests:
+                        delete_pool.map(deleter.delete_file,
+                                        (i.path() for i in s.get_filtered_manifest(m.manifest_path).iterator()))
+                    delete_pool.map(deleter.delete_file, (m.manifest_path for m in s.manifests))
+                    if s.manifest_location is not None:
+                        delete_pool.map(deleter.delete_file, [s.manifest_location])
+                delete_pool.map(deleter.delete_file, [ops.current_metadata_location])

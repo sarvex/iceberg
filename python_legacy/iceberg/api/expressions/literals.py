@@ -61,7 +61,7 @@ class Literals(object):
         elif isinstance(value, Decimal):
             return DecimalLiteral(value)
         else:
-            raise NotImplementedError("Unimplemented Type Literal for value: %s" % value)
+            raise NotImplementedError(f"Unimplemented Type Literal for value: {value}")
 
     @staticmethod
     def above_max():
@@ -130,7 +130,7 @@ class BaseLiteral(Literal):
         return not self.__eq__(other)
 
     def __repr__(self):
-        return "BaseLiteral(%s)" % str(self.value)
+        return f"BaseLiteral({str(self.value)})"
 
     def __str__(self):
         return str(self.value)
@@ -251,9 +251,16 @@ class IntegerLiteral(ComparableLiteral):
             if type_var.scale == 0:
                 return DecimalLiteral(Decimal(self.value))
             else:
-                return DecimalLiteral(Decimal(self.value)
-                                      .quantize(Decimal("." + "".join(["0" for i in range(1, type_var.scale)]) + "1"),
-                                                rounding=ROUND_HALF_UP))
+                return DecimalLiteral(
+                    Decimal(self.value).quantize(
+                        Decimal(
+                            "."
+                            + "".join(["0" for _ in range(1, type_var.scale)])
+                            + "1"
+                        ),
+                        rounding=ROUND_HALF_UP,
+                    )
+                )
 
 
 class LongLiteral(ComparableLiteral):
@@ -283,9 +290,16 @@ class LongLiteral(ComparableLiteral):
             if type_var.scale == 0:
                 return DecimalLiteral(Decimal(self.value))
             else:
-                return DecimalLiteral(Decimal(self.value)
-                                      .quantize(Decimal("." + "".join(["0" for i in range(1, type_var.scale)]) + "1"),
-                                                rounding=ROUND_HALF_UP))
+                return DecimalLiteral(
+                    Decimal(self.value).quantize(
+                        Decimal(
+                            "."
+                            + "".join(["0" for _ in range(1, type_var.scale)])
+                            + "1"
+                        ),
+                        rounding=ROUND_HALF_UP,
+                    )
+                )
 
 
 class FloatLiteral(ComparableLiteral):
@@ -304,9 +318,16 @@ class FloatLiteral(ComparableLiteral):
                                       .quantize(Decimal('1.'),
                                                 rounding=ROUND_HALF_UP))
             else:
-                return DecimalLiteral(Decimal(self.value)
-                                      .quantize(Decimal("." + "".join(["0" for i in range(1, type_var.scale)]) + "1"),
-                                                rounding=ROUND_HALF_UP))
+                return DecimalLiteral(
+                    Decimal(self.value).quantize(
+                        Decimal(
+                            "."
+                            + "".join(["0" for _ in range(1, type_var.scale)])
+                            + "1"
+                        ),
+                        rounding=ROUND_HALF_UP,
+                    )
+                )
 
 
 class DoubleLiteral(ComparableLiteral):
@@ -330,9 +351,16 @@ class DoubleLiteral(ComparableLiteral):
                                       .quantize(Decimal('1.'),
                                                 rounding=ROUND_HALF_UP))
             else:
-                return DecimalLiteral(Decimal(self.value)
-                                      .quantize(Decimal("." + "".join(["0" for i in range(1, type_var.scale)]) + "1"),
-                                                rounding=ROUND_HALF_UP))
+                return DecimalLiteral(
+                    Decimal(self.value).quantize(
+                        Decimal(
+                            "."
+                            + "".join(["0" for _ in range(1, type_var.scale)])
+                            + "1"
+                        ),
+                        rounding=ROUND_HALF_UP,
+                    )
+                )
 
 
 class DateLiteral(ComparableLiteral):
@@ -393,7 +421,9 @@ class StringLiteral(BaseLiteral):
             timestamp = dateutil.parser.parse(self.value)
             EPOCH = Literals.EPOCH
             if bool(timestamp.tzinfo) != bool(type_var.adjust_to_utc):
-                raise RuntimeError("Cannot convert to %s when string is: %s" % (type_var, self.value))
+                raise RuntimeError(
+                    f"Cannot convert to {type_var} when string is: {self.value}"
+                )
 
             if timestamp.tzinfo is not None:
                 EPOCH = EPOCH.replace(tzinfo=pytz.UTC)
@@ -411,9 +441,16 @@ class StringLiteral(BaseLiteral):
                                           .quantize(Decimal('1.'),
                                                     rounding=ROUND_HALF_UP))
                 else:
-                    return DecimalLiteral(Decimal(str(self.value))
-                                          .quantize(Decimal("." + "".join(["0" for i in range(1, type_var.scale)]) + "1"),
-                                                    rounding=ROUND_HALF_UP))
+                    return DecimalLiteral(
+                        Decimal(str(self.value)).quantize(
+                            Decimal(
+                                "."
+                                + "".join(["0" for _ in range(1, type_var.scale)])
+                                + "1"
+                            ),
+                            rounding=ROUND_HALF_UP,
+                        )
+                    )
 
     def __eq__(self, other):
         if id(self) == id(other):
@@ -428,31 +465,19 @@ class StringLiteral(BaseLiteral):
         return not self.__eq__(other)
 
     def __lt__(self, other):
-        if other is None:
-            return False
-
-        return self.value < other.value
+        return False if other is None else self.value < other.value
 
     def __gt__(self, other):
-        if other is None:
-            return True
-
-        return self.value > other.value
+        return True if other is None else self.value > other.value
 
     def __le__(self, other):
-        if other is None:
-            return False
-
-        return self.value <= other.value
+        return False if other is None else self.value <= other.value
 
     def __ge__(self, other):
-        if other is None:
-            return True
-
-        return self.value >= other.value
+        return True if other is None else self.value >= other.value
 
     def __str__(self):
-        return '"' + self.value + '"'
+        return f'"{self.value}"'
 
 
 class UUIDLiteral(ComparableLiteral):
@@ -485,28 +510,16 @@ class FixedLiteral(BaseLiteral):
         return not self.__eq__(other)
 
     def __lt__(self, other):
-        if other is None:
-            return False
-
-        return self.value < other.value
+        return False if other is None else self.value < other.value
 
     def __gt__(self, other):
-        if other is None:
-            return True
-
-        return self.value > other.value
+        return True if other is None else self.value > other.value
 
     def __le__(self, other):
-        if other is None:
-            return False
-
-        return self.value <= other.value
+        return False if other is None else self.value <= other.value
 
     def __ge__(self, other):
-        if other is None:
-            return True
-
-        return self.value >= other.value
+        return True if other is None else self.value >= other.value
 
 
 class BinaryLiteral(BaseLiteral):
@@ -515,9 +528,7 @@ class BinaryLiteral(BaseLiteral):
 
     def to(self, type_var):
         if type_var.type_id == TypeID.FIXED:
-            if type_var.length == len(self.value):
-                return FixedLiteral(self.value)
-            return None
+            return FixedLiteral(self.value) if type_var.length == len(self.value) else None
         elif type_var.type_id == TypeID.BINARY:
             return self
 
@@ -531,28 +542,16 @@ class BinaryLiteral(BaseLiteral):
         return not self.__eq__(other)
 
     def __lt__(self, other):
-        if other is None:
-            return False
-
-        return self.value < other.value
+        return False if other is None else self.value < other.value
 
     def __gt__(self, other):
-        if other is None:
-            return True
-
-        return self.value > other.value
+        return True if other is None else self.value > other.value
 
     def __le__(self, other):
-        if other is None:
-            return False
-
-        return self.value <= other.value
+        return False if other is None else self.value <= other.value
 
     def __ge__(self, other):
-        if other is None:
-            return True
-
-        return self.value >= other.value
+        return True if other is None else self.value >= other.value
 
 
 class FixedLiteralProxy(object):
@@ -572,10 +571,7 @@ class ConstantExpressionProxy(object):
             self.true_or_false = true_or_false
 
     def read_resolve(self):
-        if self.true_or_false:
-            return TRUE
-        else:
-            return FALSE
+        return TRUE if self.true_or_false else FALSE
 
 
 class BinaryLiteralProxy(FixedLiteralProxy):
